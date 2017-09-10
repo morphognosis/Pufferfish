@@ -11,6 +11,6 @@ Setup:
 
 References:
 www.researchgate.net/publication/315112721_Morphognosis_the_shape_of_knowledge_in_space_and_time 
-github.com/portegys/Morphognosis
-en.wikipedia.org/wiki/Torquigener_albomaculosus
+https://github.com/portegys/Morphognosis
+https://en.wikipedia.org/wiki/Torquigener_albomaculosus
 www.smithsonianmag.com/smart-news/pufferfish-create-underwater-crop-circles-when-they-mate-620736
