@@ -28,11 +28,8 @@ public class Pufferfish
    // Properties.
    public int          id;
    public int          x, y;
-   public int          direction;
-   public boolean      hasStone;
    public Nest         nest;
    public int          x2, y2;
-   public int          direction2;
    public int          driver;
    public int          driverResponse;
    public int          randomSeed;
@@ -112,21 +109,27 @@ public class Pufferfish
       }
    }
 
+   // Autopilot response.
+   int radius;
+   int ring;
+   int step;
+   int dir;
+
    // Constructors.
-   public Pufferfish(int id, int x, int y, int direction, Nest nest, int randomSeed)
+   public Pufferfish(int id, Nest nest, int randomSeed)
    {
       this.id         = id;
       this.nest       = nest;
       this.randomSeed = randomSeed;
       random          = new SecureRandom();
       random.setSeed(randomSeed);
-      init(x, y, direction);
+      init();
       int [] numEventTypes = new int[NUM_SENSORS];
       for (int i = 0; i < NUM_SENSORS; i++)
       {
          numEventTypes[i] = Nest.MAX_ELEVATION_VALUE + 1;
       }
-      morphognostic = new Morphognostic(direction, numEventTypes);
+      morphognostic = new Morphognostic(Orientation.NORTH, numEventTypes);
       Morphognostic.Neighborhood n = morphognostic.neighborhoods.get(morphognostic.NUM_NEIGHBORHOODS - 1);
       maxEventAge = n.epoch + n.duration - 1;
       metamorphs  = new ArrayList<Metamorph>();
@@ -134,7 +137,7 @@ public class Pufferfish
    }
 
 
-   public Pufferfish(int id, int x, int y, int direction, Nest nest, int randomSeed,
+   public Pufferfish(int id, Nest nest, int randomSeed,
                      int NUM_NEIGHBORHOODS,
                      int NEIGHBORHOOD_INITIAL_DIMENSION,
                      int NEIGHBORHOOD_DIMENSION_STRIDE,
@@ -147,13 +150,13 @@ public class Pufferfish
       this.randomSeed = randomSeed;
       random          = new SecureRandom();
       random.setSeed(randomSeed);
-      init(x, y, direction);
+      init();
       int [] numEventTypes = new int[NUM_SENSORS];
       for (int i = 0; i < NUM_SENSORS; i++)
       {
          numEventTypes[i] = Nest.MAX_ELEVATION_VALUE + 1;
       }
-      morphognostic = new Morphognostic(direction, numEventTypes,
+      morphognostic = new Morphognostic(Orientation.NORTH, numEventTypes,
                                         NUM_NEIGHBORHOODS,
                                         NEIGHBORHOOD_INITIAL_DIMENSION,
                                         NEIGHBORHOOD_DIMENSION_STRIDE,
@@ -180,7 +183,7 @@ public class Pufferfish
       {
          numEventTypes[i] = Nest.MAX_ELEVATION_VALUE + 1;
       }
-      morphognostic = new Morphognostic(direction, numEventTypes);
+      morphognostic = new Morphognostic(Orientation.NORTH, numEventTypes);
       Morphognostic.Neighborhood n = morphognostic.neighborhoods.get(morphognostic.NUM_NEIGHBORHOODS - 1);
       maxEventAge = n.epoch + n.duration - 1;
       metamorphs  = new ArrayList<Metamorph>();
@@ -189,13 +192,11 @@ public class Pufferfish
 
 
    // Initialize.
-   void init(int x, int y, int direction)
+   void init()
    {
-      this.x         = x2 = x;
-      this.y         = y2 = y;
-      this.direction = direction2 = direction;
-      hasStone       = false;
-      sensors        = new float[NUM_SENSORS];
+      x       = x2 = nest.size.width / 2;
+      y       = y2 = nest.size.height / 2;
+      sensors = new float[NUM_SENSORS];
       for (int n = 0; n < NUM_SENSORS; n++)
       {
          sensors[n] = 0.0f;
@@ -213,12 +214,7 @@ public class Pufferfish
       }
       events    = new Vector<Event>();
       eventTime = 0;
-   }
-
-
-   void init()
-   {
-      init(0, 0, Orientation.NORTH);
+      initAutopilot();
    }
 
 
@@ -226,9 +222,8 @@ public class Pufferfish
    void reset()
    {
       random.setSeed(randomSeed);
-      x         = x2;
-      y         = y2;
-      direction = direction2;
+      x = x2;
+      y = y2;
       for (int i = 0; i < NUM_SENSORS; i++)
       {
          sensors[i] = 0.0f;
@@ -244,6 +239,7 @@ public class Pufferfish
       }
       events.clear();
       morphognostic.clear();
+      initAutopilot();
    }
 
 
@@ -273,13 +269,8 @@ public class Pufferfish
       Utility.saveInt(writer, id);
       Utility.saveInt(writer, x);
       Utility.saveInt(writer, y);
-      Utility.saveInt(writer, direction);
-      int n = 0;
-      if (hasStone) { n = 1; }
-      Utility.saveInt(writer, n);
       Utility.saveInt(writer, x2);
       Utility.saveInt(writer, y2);
-      Utility.saveInt(writer, direction2);
       morphognostic.save(output);
       Utility.saveInt(writer, maxEventAge);
       Utility.saveInt(writer, metamorphs.size());
@@ -316,24 +307,21 @@ public class Pufferfish
       // DataInputStream is for unbuffered input.
       DataInputStream reader = new DataInputStream(input);
 
-      id        = Utility.loadInt(reader);
-      x         = Utility.loadInt(reader);
-      y         = Utility.loadInt(reader);
-      direction = Utility.loadInt(reader);
-      int n = Utility.loadInt(reader);
-      if (n == 0) { hasStone = false; }else{ hasStone = true; }
+      id            = Utility.loadInt(reader);
+      x             = Utility.loadInt(reader);
+      y             = Utility.loadInt(reader);
       x2            = Utility.loadInt(reader);
       y2            = Utility.loadInt(reader);
-      direction2    = Utility.loadInt(reader);
       morphognostic = Morphognostic.load(input);
       maxEventAge   = Utility.loadInt(reader);
       metamorphs.clear();
-      n = Utility.loadInt(reader);
+      int n = Utility.loadInt(reader);
       for (int i = 0; i < n; i++)
       {
          metamorphs.add(Metamorph.load(input));
       }
       initMetamorphNN();
+      initAutopilot();
    }
 
 
@@ -389,7 +377,7 @@ public class Pufferfish
       }
       else if (driver == DRIVER_TYPE.AUTOPILOT.getValue())
       {
-         autoResponse();
+         autoPilotResponse();
       }
       else
       {
@@ -458,11 +446,116 @@ public class Pufferfish
    }
 
 
-   // Autopilot response.
-   void autoResponse()
+   // Initialize autopilot.
+   public void initAutopilot()
    {
-      // Default response.
-      response = WAIT;
+      int w = nest.size.width;
+      int h = nest.size.height;
+
+      radius = x;
+      int r = Math.abs(w - x - 1);
+      if (r < radius)
+      {
+         radius = r;
+      }
+      if (y < radius)
+      {
+         radius = y;
+      }
+      r = Math.abs(h - y - 1);
+      if (r < radius)
+      {
+         radius = r;
+      }
+      ring = 0;
+      step = 0;
+      dir  = Orientation.WEST;
+   }
+
+
+   // Autopilot response.
+   void autoPilotResponse()
+   {
+      if (nest.cells[x][y][Nest.ELEVATION_CELL_INDEX] <
+          nest.restoreCells[x][y][Nest.ELEVATION_CELL_INDEX])
+      {
+         response = RAISE;
+      }
+      else if (nest.cells[x][y][Nest.ELEVATION_CELL_INDEX] >
+               nest.restoreCells[x][y][Nest.ELEVATION_CELL_INDEX])
+      {
+         response = LOWER;
+      }
+      else
+      {
+         int steps = ring * 2;
+         switch (dir)
+         {
+         case Orientation.WEST:
+            if (step == steps)
+            {
+               if (ring < radius)
+               {
+                  response = LEFT;
+                  ring++;
+                  dir  = Orientation.SOUTH;
+                  step = 1;
+               }
+               else
+               {
+                  response = WAIT;
+               }
+            }
+            else
+            {
+               response = LEFT;
+               step++;
+            }
+            break;
+
+         case Orientation.SOUTH:
+            if (step == steps)
+            {
+               response = RIGHT;
+               dir      = Orientation.EAST;
+               step     = 1;
+            }
+            else
+            {
+               response = DOWN;
+               step++;
+            }
+            break;
+
+         case Orientation.EAST:
+            if (step == steps)
+            {
+               response = UP;
+               dir      = Orientation.NORTH;
+               step     = 1;
+            }
+            else
+            {
+               response = RIGHT;
+               step++;
+            }
+            break;
+
+         case Orientation.NORTH:
+            if (step == steps)
+            {
+               response = LEFT;
+               dir      = Orientation.WEST;
+               step     = 1;
+            }
+            else
+            {
+               response = UP;
+               step++;
+            }
+            break;
+         }
+      }
    }
 
 

@@ -323,6 +323,7 @@ public class PufferfishDashboard extends JFrame
          if (source instanceof Choice && ((Choice)source == driverChoice))
          {
             pufferfish.driver = driverChoice.getSelectedIndex();
+            pufferfish.initAutopilot();
             return;
          }
          if (source instanceof Checkbox && ((Checkbox)source == trainNNcheck))

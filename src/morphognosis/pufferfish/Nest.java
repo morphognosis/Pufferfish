@@ -23,7 +23,6 @@ public class Nest
    public Dimension        size;
    public int[][][]        cells;
    public int[][][]        restoreCells;
-   int nestX, nestY;
 
    // Nest image file.
    String nestImageFile;

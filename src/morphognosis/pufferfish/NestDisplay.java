@@ -6,6 +6,7 @@ package morphognosis.pufferfish;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.security.SecureRandom;
 import javax.swing.*;
 import javax.swing.event.*;
 
@@ -39,11 +40,20 @@ public class NestDisplay extends JFrame
    // Quit.
    boolean quit;
 
+   // Random numbers.
+   SecureRandom random;
+   int          randomSeed;
+
    // Constructors.
    public NestDisplay(Nest nest, Pufferfish pufferfish)
    {
       this.nest       = nest;
       this.pufferfish = pufferfish;
+
+      // Random numbers.
+      randomSeed = pufferfish.randomSeed;
+      random     = new SecureRandom();
+      random.setSeed(randomSeed);
 
       // Create pufferfish dashboard.
       pufferfishDashboard = new PufferfishDashboard(pufferfish, this);
@@ -449,6 +459,7 @@ public class NestDisplay extends JFrame
 
       // Components.
       JButton    resetButton;
+      JButton    scrambleButton;
       JLabel     stepCounter;
       JSlider    speedSlider;
       JButton    stepButton;
@@ -464,6 +475,9 @@ public class NestDisplay extends JFrame
          resetButton = new JButton("Reset");
          resetButton.addActionListener(this);
          panel.add(resetButton);
+         scrambleButton = new JButton("Scramble");
+         scrambleButton.addActionListener(this);
+         panel.add(scrambleButton);
          panel.add(new JLabel("Speed:   Fast", Label.RIGHT));
          speedSlider = new JSlider(JSlider.HORIZONTAL, MIN_STEP_DELAY,
                                    MAX_STEP_DELAY, MAX_STEP_DELAY);
@@ -504,7 +518,32 @@ public class NestDisplay extends JFrame
          // Reset?
          if (evt.getSource() == (Object)resetButton)
          {
+            random = new SecureRandom();
+            random.setSeed(randomSeed);
             nest.restore();
+            pufferfish.reset();
+            pufferfishDashboard.update();
+
+            return;
+         }
+
+         // Scramble surface?
+         if (evt.getSource() == (Object)scrambleButton)
+         {
+            nest.restore();
+            int w = nest.size.width;
+            int h = nest.size.height;
+            for (int i = 0, j = (w * h * 10); i < j; i++)
+            {
+               int x  = random.nextInt(w);
+               int x2 = random.nextInt(w);
+               int y  = random.nextInt(h);
+               int y2 = random.nextInt(h);
+               int c  = nest.cells[x][y][Nest.ELEVATION_CELL_INDEX];
+               nest.cells[x][y][Nest.ELEVATION_CELL_INDEX] =
+                  nest.cells[x2][y2][Nest.ELEVATION_CELL_INDEX];
+               nest.cells[x2][y2][Nest.ELEVATION_CELL_INDEX] = c;
+            }
             pufferfish.reset();
             pufferfishDashboard.update();
 

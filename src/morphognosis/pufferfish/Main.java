@@ -35,10 +35,15 @@ import java.security.SecureRandom;
 import javax.swing.UIManager;
 
 import morphognosis.Morphognostic;
-import morphognosis.Orientation;
 
 public class Main
 {
+   // Nest image.
+   public static final String NEST_IMAGE_FILE = "pufferfish_nest.png";
+
+   // Default random seed.
+   public static final int DEFAULT_RANDOM_SEED = 4517;
+
    // Usage.
    public static final String Usage =
       "Usage:\n" +
@@ -54,7 +59,7 @@ public class Main
       "     [-neighborhoodDimensionMultiplier <quantity> (default=" + Morphognostic.DEFAULT_NEIGHBORHOOD_DIMENSION_MULTIPLIER + ")]\n" +
       "     [-epochIntervalStride <quantity> (default=" + Morphognostic.DEFAULT_EPOCH_INTERVAL_STRIDE + ")]\n" +
       "     [-epochIntervalMultiplier <quantity> (default=" + Morphognostic.DEFAULT_EPOCH_INTERVAL_MULTIPLIER + ")]\n" +
-      "     [-randomSeed <random number seed>]\n" +
+      "     [-randomSeed <random number seed> (default=" + DEFAULT_RANDOM_SEED + ")]\n" +
       "     [-save <file name>]\n" +
       "  Resume run:\n" +
       "    java morphognosis.pufferfish.Main\n" +
@@ -66,12 +71,6 @@ public class Main
       "Exit codes:\n" +
       "  0=success\n" +
       "  1=error";
-
-   // Nest image.
-   public static final String NEST_IMAGE_FILE = "pufferfish_nest.png";
-
-   // Default random seed.
-   public static final int DEFAULT_RANDOM_SEED = 4517;
 
    // Pufferfish.
    public Pufferfish pufferfish;
@@ -108,8 +107,7 @@ public class Main
       nest = new Nest(new Dimension(width, height), NEST_IMAGE_FILE);
 
       // Create pufferfish.
-      pufferfish = new Pufferfish(0, nest.nestX, nest.nestY,
-                                  Orientation.NORTH, nest, randomSeed,
+      pufferfish = new Pufferfish(0, nest, randomSeed,
                                   NUM_NEIGHBORHOODS,
                                   NEIGHBORHOOD_INITIAL_DIMENSION,
                                   NEIGHBORHOOD_DIMENSION_STRIDE,
@@ -213,7 +211,8 @@ public class Main
    {
       FileInputStream input;
 
-      try {
+      try
+      {
          input = new FileInputStream(new File(filename));
       }
       catch (Exception e)
