@@ -116,35 +116,6 @@ public class Main
                                   EPOCH_INTERVAL_MULTIPLIER);
    }
 
-
-   // Get width.
-   int getWidth()
-   {
-      if (nest != null)
-      {
-         return(nest.size.width);
-      }
-      else
-      {
-         return(0);
-      }
-   }
-
-
-   // Get height.
-   int getHeight()
-   {
-      if (nest != null)
-      {
-         return(nest.size.height);
-      }
-      else
-      {
-         return(0);
-      }
-   }
-
-
    // Reset.
    public void reset()
    {
@@ -243,7 +214,10 @@ public class Main
       random.setSeed(randomSeed);
       if (steps >= 0)
       {
-         stepPufferfish();
+    	  for (; steps > 0; steps--)
+    	  {
+    		  stepPufferfish();
+    	  }
       }
       else
       {
@@ -265,6 +239,9 @@ public class Main
 
       width  = nest.size.width;
       height = nest.size.height;
+
+      // Update landmarks.
+      pufferfish.landmarkMap[pufferfish.x][pufferfish.y] = true;
 
       // Initialize sensors.
       cx = pufferfish.x;
@@ -332,9 +309,6 @@ public class Main
          }
          sensors[i] = (float)nest.cells[x][y][Nest.ELEVATION_CELL_INDEX];
       }
-
-      // Update landmarks.
-      pufferfish.landmarkMap[pufferfish.x][pufferfish.y] = true;
 
       // Cycle pufferfish.
       response = pufferfish.cycle(sensors);
