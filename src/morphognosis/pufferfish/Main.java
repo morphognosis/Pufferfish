@@ -116,6 +116,7 @@ public class Main
                                   EPOCH_INTERVAL_MULTIPLIER);
    }
 
+
    // Reset.
    public void reset()
    {
@@ -214,10 +215,10 @@ public class Main
       random.setSeed(randomSeed);
       if (steps >= 0)
       {
-    	  for (; steps > 0; steps--)
-    	  {
-    		  stepPufferfish();
-    	  }
+         for ( ; steps > 0; steps--)
+         {
+            stepPufferfish();
+         }
       }
       else
       {
