@@ -19,7 +19,7 @@ public class Nest
    // See SectorDisplay.EMPTY_CELL_VALUE.
    public static final int CELL_DIMENSIONS      = 1;
    public static final int ELEVATION_CELL_INDEX = 0;
-   public static int       MAX_ELEVATION_VALUE  = 99;
+   public static int       MAX_ELEVATION_VALUE  = 10;
    public Dimension        size;
    public int[][][]        cells;
    public int[][][]        restoreCells;
@@ -175,7 +175,7 @@ public class Nest
    {
       int x, y;
 
-      PrintWriter writer = new PrintWriter(output);
+      DataOutputStream writer = new DataOutputStream(new BufferedOutputStream(output));
 
       Utility.saveInt(writer, size.width);
       Utility.saveInt(writer, size.height);

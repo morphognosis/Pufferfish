@@ -35,6 +35,7 @@ import java.security.SecureRandom;
 import javax.swing.UIManager;
 
 import morphognosis.Morphognostic;
+import morphognosis.Orientation;
 
 public class Main
 {
@@ -59,6 +60,7 @@ public class Main
       "     [-neighborhoodDimensionMultiplier <quantity> (default=" + Morphognostic.DEFAULT_NEIGHBORHOOD_DIMENSION_MULTIPLIER + ")]\n" +
       "     [-epochIntervalStride <quantity> (default=" + Morphognostic.DEFAULT_EPOCH_INTERVAL_STRIDE + ")]\n" +
       "     [-epochIntervalMultiplier <quantity> (default=" + Morphognostic.DEFAULT_EPOCH_INTERVAL_MULTIPLIER + ")]\n" +
+      "     [-equivalentMorphognosticDistance <distance> (default=" + Pufferfish.EQUIVALENT_MORPHOGNOSTIC_DISTANCE + ")]\n" +
       "     [-randomSeed <random number seed> (default=" + DEFAULT_RANDOM_SEED + ")]\n" +
       "     [-save <file name>]\n" +
       "  Resume run:\n" +
@@ -233,7 +235,7 @@ public class Main
    // Step pufferfish.
    void stepPufferfish()
    {
-      int x, y, cx, cy, ux, uy, dx, dy, lx, ly, rx, ry, width, height;
+      int x, y, fx, fy, width, height;
       int response;
 
       float[] sensors = new float[Pufferfish.NUM_SENSORS];
@@ -245,67 +247,224 @@ public class Main
       pufferfish.landmarkMap[pufferfish.x][pufferfish.y] = true;
 
       // Initialize sensors.
-      cx = pufferfish.x;
-      cy = pufferfish.y;
-      ux = dx = lx = rx = cx;
-      uy = dy = ly = ry = cy;
+      fx = fy = 0;
       for (int i = 0; i < Pufferfish.NUM_SENSORS; i++)
       {
-         x = cx;
-         y = cy;
+         x = pufferfish.x;
+         y = pufferfish.y;
          switch (i)
          {
          case 0:
-            x--;
-            if (x < 0) { x += width; }
-            y = ((y + 1) % height);
+            switch (pufferfish.orientation)
+            {
+            case Orientation.NORTH:
+               x--;
+               if (x < 0) { x += width; }
+               y = ((y + 1) % height);
+               break;
+
+            case Orientation.EAST:
+               x = ((x + 1) % width);
+               y = ((y + 1) % height);
+               break;
+
+            case Orientation.SOUTH:
+               x = ((x + 1) % width);
+               y--;
+               if (y < 0) { y += height; }
+               break;
+
+            case Orientation.WEST:
+               x--;
+               if (x < 0) { x += width; }
+               y--;
+               if (y < 0) { y += height; }
+               break;
+            }
             break;
 
          case 1:
-            y  = ((y + 1) % height);
-            ux = x;
-            uy = y;
+            switch (pufferfish.orientation)
+            {
+            case Orientation.NORTH:
+               y = ((y + 1) % height);
+               break;
+
+            case Orientation.EAST:
+               x = ((x + 1) % width);
+               break;
+
+            case Orientation.SOUTH:
+               y--;
+               if (y < 0) { y += height; }
+               break;
+
+            case Orientation.WEST:
+               x--;
+               if (x < 0) { x += width; }
+               break;
+            }
+            fx = x;
+            fy = y;
             break;
 
          case 2:
-            x = ((x + 1) % width);
-            y = ((y + 1) % height);
+            switch (pufferfish.orientation)
+            {
+            case Orientation.NORTH:
+               x = ((x + 1) % width);
+               y = ((y + 1) % height);
+               break;
+
+            case Orientation.EAST:
+               x = ((x + 1) % width);
+               y--;
+               if (y < 0) { y += height; }
+               break;
+
+            case Orientation.SOUTH:
+               x--;
+               if (x < 0) { x += width; }
+               y--;
+               if (y < 0) { y += height; }
+               break;
+
+            case Orientation.WEST:
+               x--;
+               if (x < 0) { x += width; }
+               y = ((y + 1) % height);
+               break;
+            }
             break;
 
          case 3:
-            x--;
-            if (x < 0) { x += width; }
-            lx = x;
-            ly = y;
+            switch (pufferfish.orientation)
+            {
+            case Orientation.NORTH:
+               x--;
+               if (x < 0) { x += width; }
+               break;
+
+            case Orientation.EAST:
+               y = ((y + 1) % height);
+               break;
+
+            case Orientation.SOUTH:
+               x = ((x + 1) % width);
+               break;
+
+            case Orientation.WEST:
+               y--;
+               if (y < 0) { y += height; }
+               break;
+            }
             break;
 
          case 4:
             break;
 
          case 5:
-            x  = ((x + 1) % width);
-            rx = x;
-            ry = y;
+            switch (pufferfish.orientation)
+            {
+            case Orientation.NORTH:
+               x = ((x + 1) % width);
+               break;
+
+            case Orientation.EAST:
+               y--;
+               if (y < 0) { y += height; }
+               break;
+
+            case Orientation.SOUTH:
+               x--;
+               if (x < 0) { x += width; }
+               break;
+
+            case Orientation.WEST:
+               y = ((y + 1) % height);
+               break;
+            }
             break;
 
          case 6:
-            x--;
-            if (x < 0) { x += width; }
-            y--;
-            if (y < 0) { y += height; }
+            switch (pufferfish.orientation)
+            {
+            case Orientation.NORTH:
+               x--;
+               if (x < 0) { x += width; }
+               y--;
+               if (y < 0) { y += height; }
+               break;
+
+            case Orientation.EAST:
+               x--;
+               if (x < 0) { x += width; }
+               y = ((y + 1) % height);
+               break;
+
+            case Orientation.SOUTH:
+               x = ((x + 1) % width);
+               y = ((y + 1) % height);
+               break;
+
+            case Orientation.WEST:
+               x = ((x + 1) % width);
+               y--;
+               if (y < 0) { y += height; }
+               break;
+            }
             break;
 
          case 7:
-            y--;
-            if (y < 0) { y += height; }
-            dx = x;
-            dy = y;
+            switch (pufferfish.orientation)
+            {
+            case Orientation.NORTH:
+               y--;
+               if (y < 0) { y += height; }
+               break;
+
+            case Orientation.EAST:
+               x--;
+               if (x < 0) { x += width; }
+               break;
+
+            case Orientation.SOUTH:
+               y = ((y + 1) % height);
+               break;
+
+            case Orientation.WEST:
+               x = ((x + 1) % width);
+               break;
+            }
             break;
 
          case 8:
-            x = ((x + 1) % width);
-            y--;
-            if (y < 0) { y += height; }
+            switch (pufferfish.orientation)
+            {
+            case Orientation.NORTH:
+               x = ((x + 1) % width);
+               y--;
+               if (y < 0) { y += height; }
+               break;
+
+            case Orientation.EAST:
+               x--;
+               if (x < 0) { x += width; }
+               y--;
+               if (y < 0) { y += height; }
+               break;
+
+            case Orientation.SOUTH:
+               x--;
+               if (x < 0) { x += width; }
+               y = ((y + 1) % height);
+               break;
+
+            case Orientation.WEST:
+               x = ((x + 1) % width);
+               y = ((y + 1) % height);
+               break;
+            }
             break;
          }
          sensors[i] = (float)nest.cells[x][y][Nest.ELEVATION_CELL_INDEX];
@@ -317,37 +476,36 @@ public class Main
       // Process response.
       switch (response)
       {
-      case Pufferfish.UP:
-         pufferfish.x = ux;
-         pufferfish.y = uy;
+      case Pufferfish.FORWARD:
+         pufferfish.x = fx;
+         pufferfish.y = fy;
          break;
 
-      case Pufferfish.DOWN:
-         pufferfish.x = dx;
-         pufferfish.y = dy;
+      case Pufferfish.TURN_LEFT:
+         pufferfish.orientation--;
+         if (pufferfish.orientation < 0)
+         {
+            pufferfish.orientation += Orientation.NUM_ORIENTATIONS;
+         }
          break;
 
-      case Pufferfish.LEFT:
-         pufferfish.x = lx;
-         pufferfish.y = ly;
-         break;
-
-      case Pufferfish.RIGHT:
-         pufferfish.x = rx;
-         pufferfish.y = ry;
+      case Pufferfish.TURN_RIGHT:
+         pufferfish.orientation = (pufferfish.orientation + 1) %
+                                  Orientation.NUM_ORIENTATIONS;
          break;
 
       case Pufferfish.RAISE:
-         if (nest.cells[cx][cy][Nest.ELEVATION_CELL_INDEX] < Nest.MAX_ELEVATION_VALUE)
+         if (nest.cells[pufferfish.x][pufferfish.y][Nest.ELEVATION_CELL_INDEX] <
+             Nest.MAX_ELEVATION_VALUE)
          {
-            nest.cells[cx][cy][Nest.ELEVATION_CELL_INDEX]++;
+            nest.cells[pufferfish.x][pufferfish.y][Nest.ELEVATION_CELL_INDEX]++;
          }
          break;
 
       case Pufferfish.LOWER:
-         if (nest.cells[cx][cy][Nest.ELEVATION_CELL_INDEX] > 0)
+         if (nest.cells[pufferfish.x][pufferfish.y][Nest.ELEVATION_CELL_INDEX] > 0)
          {
-            nest.cells[cx][cy][Nest.ELEVATION_CELL_INDEX]--;
+            nest.cells[pufferfish.x][pufferfish.y][Nest.ELEVATION_CELL_INDEX]--;
          }
          break;
       }
@@ -721,6 +879,32 @@ public class Main
                System.exit(1);
             }
             gotParm = true;
+            continue;
+         }
+         if (args[i].equals("-equivalentMorphognosticDistance"))
+         {
+            i++;
+            if (i >= args.length)
+            {
+               System.err.println("Invalid equivalentMorphognosticDistance option");
+               System.err.println(Usage);
+               System.exit(1);
+            }
+            try
+            {
+               Pufferfish.EQUIVALENT_MORPHOGNOSTIC_DISTANCE = Float.parseFloat(args[i]);
+            }
+            catch (NumberFormatException e) {
+               System.err.println("Invalid equivalentMorphognosticDistance option");
+               System.err.println(Usage);
+               System.exit(1);
+            }
+            if (Pufferfish.EQUIVALENT_MORPHOGNOSTIC_DISTANCE < 0.0f)
+            {
+               System.err.println("Invalid equivalentMorphognosticDistance option");
+               System.err.println(Usage);
+               System.exit(1);
+            }
             continue;
          }
          if (args[i].equals("-randomSeed"))

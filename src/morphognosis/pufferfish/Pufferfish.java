@@ -11,6 +11,7 @@ import java.util.Vector;
 
 import morphognosis.Metamorph;
 import morphognosis.Morphognostic;
+import morphognosis.Morphognostic.Neighborhood;
 import morphognosis.Orientation;
 import morphognosis.Utility;
 import weka.classifiers.Evaluation;
@@ -28,12 +29,17 @@ public class Pufferfish
    // Properties.
    public int          id;
    public int          x, y;
+   public int          orientation;
    public Nest         nest;
    public int          x2, y2;
+   public int          orientation2;
    public int          driver;
    public int          driverResponse;
    public int          randomSeed;
    public SecureRandom random;
+
+   // Maximum distance between equivalent morphognostics.
+   public static float EQUIVALENT_MORPHOGNOSTIC_DISTANCE = 0.0f;
 
    // Current morphognostic.
    public Morphognostic morphognostic;
@@ -54,13 +60,12 @@ public class Pufferfish
 
    // Response types.
    public static final int WAIT          = 0;
-   public static final int UP            = 1;
-   public static final int DOWN          = 2;
-   public static final int LEFT          = 3;
-   public static final int RIGHT         = 4;
-   public static final int RAISE         = 5;
-   public static final int LOWER         = 6;
-   public static final int NUM_RESPONSES = 7;
+   public static final int FORWARD       = 1;
+   public static final int TURN_LEFT     = 2;
+   public static final int TURN_RIGHT    = 3;
+   public static final int RAISE         = 4;
+   public static final int LOWER         = 5;
+   public static final int NUM_RESPONSES = 6;
 
    // Navigation.
    public boolean[][] landmarkMap;
@@ -113,7 +118,6 @@ public class Pufferfish
    int radius;
    int ring;
    int step;
-   int dir;
 
    // Constructors.
    public Pufferfish(int id, Nest nest, int randomSeed)
@@ -194,9 +198,10 @@ public class Pufferfish
    // Initialize.
    void init()
    {
-      x       = x2 = nest.size.width / 2;
-      y       = y2 = nest.size.height / 2;
-      sensors = new float[NUM_SENSORS];
+      x           = x2 = nest.size.width / 2;
+      y           = y2 = nest.size.height / 2;
+      orientation = orientation2 = Orientation.NORTH;
+      sensors     = new float[NUM_SENSORS];
       for (int n = 0; n < NUM_SENSORS; n++)
       {
          sensors[n] = 0.0f;
@@ -222,8 +227,9 @@ public class Pufferfish
    void reset()
    {
       random.setSeed(randomSeed);
-      x = x2;
-      y = y2;
+      x           = x2;
+      y           = y2;
+      orientation = orientation2;
       for (int i = 0; i < NUM_SENSORS; i++)
       {
          sensors[i] = 0.0f;
@@ -264,20 +270,23 @@ public class Pufferfish
    // Save pufferfish.
    public void save(FileOutputStream output) throws IOException
    {
-      PrintWriter writer = new PrintWriter(new OutputStreamWriter(output));
+      DataOutputStream writer = new DataOutputStream(new BufferedOutputStream(output));
 
       Utility.saveInt(writer, id);
       Utility.saveInt(writer, x);
       Utility.saveInt(writer, y);
+      Utility.saveInt(writer, orientation);
       Utility.saveInt(writer, x2);
       Utility.saveInt(writer, y2);
-      morphognostic.save(output);
+      Utility.saveInt(writer, orientation2);
+      morphognostic.save(writer);
       Utility.saveInt(writer, maxEventAge);
       Utility.saveInt(writer, metamorphs.size());
       for (Metamorph m : metamorphs)
       {
-         m.save(output);
+         m.save(writer);
       }
+      Utility.saveFloat(writer, EQUIVALENT_MORPHOGNOSTIC_DISTANCE);
       writer.flush();
    }
 
@@ -310,16 +319,19 @@ public class Pufferfish
       id            = Utility.loadInt(reader);
       x             = Utility.loadInt(reader);
       y             = Utility.loadInt(reader);
+      orientation   = Utility.loadInt(reader);
       x2            = Utility.loadInt(reader);
       y2            = Utility.loadInt(reader);
-      morphognostic = Morphognostic.load(input);
+      orientation2  = Utility.loadInt(reader);
+      morphognostic = Morphognostic.load(reader);
       maxEventAge   = Utility.loadInt(reader);
       metamorphs.clear();
       int n = Utility.loadInt(reader);
       for (int i = 0; i < n; i++)
       {
-         metamorphs.add(Metamorph.load(input));
+         metamorphs.add(Metamorph.load(reader));
       }
+      EQUIVALENT_MORPHOGNOSTIC_DISTANCE = Utility.loadFloat(reader);
       initMetamorphNN();
       initAutopilot();
    }
@@ -387,14 +399,22 @@ public class Pufferfish
       // Update metamorphs.
       Metamorph metamorph = new Metamorph(morphognostic.clone(), response);
       boolean   found     = false;
+
       for (Metamorph m : metamorphs)
       {
-         if (m.equals(metamorph))
+         for (int i = 0; i < Orientation.NUM_ORIENTATIONS; i++)
          {
-            found = true;
-            break;
+            metamorph.morphognostic.orientation = i;
+            if (m.morphognostic.compare(metamorph.morphognostic) <=
+                EQUIVALENT_MORPHOGNOSTIC_DISTANCE)
+            {
+               found = true;
+               break;
+            }
          }
+         if (found) { break; }
       }
+      metamorph.morphognostic.orientation = Orientation.NORTH;
       if (!found)
       {
          metamorphs.add(metamorph);
@@ -414,24 +434,29 @@ public class Pufferfish
       float     d2;
       for (Metamorph m : metamorphs)
       {
-         d2 = morphognostic.compare(m.morphognostic);
-         if ((metamorph == null) || (d2 < d))
+         for (int i = 0; i < Orientation.NUM_ORIENTATIONS; i++)
          {
-            d         = d2;
-            metamorph = m;
-         }
-         else
-         {
-            if (d2 == d)
+            morphognostic.orientation = i;
+            d2 = morphognostic.compare(m.morphognostic);
+            if ((metamorph == null) || (d2 < d))
             {
-               if (random.nextBoolean())
+               d         = d2;
+               metamorph = m;
+            }
+            else
+            {
+               if (d2 == d)
                {
-                  d         = d2;
-                  metamorph = m;
+                  if (random.nextBoolean())
+                  {
+                     d         = d2;
+                     metamorph = m;
+                  }
                }
             }
          }
       }
+      morphognostic.orientation = Orientation.NORTH;
       if (metamorph != null)
       {
          response = metamorph.response;
@@ -442,7 +467,33 @@ public class Pufferfish
    // Get metamorph neural network response.
    void metamorphNNresponse()
    {
-      response = classifyMorphognostic(morphognostic);
+      response = WAIT;
+      double d = -1.0;
+      for (int i = 0; i < Orientation.NUM_ORIENTATIONS; i++)
+      {
+         morphognostic.orientation      = i;
+         double[] responseProbabilities = classifyMorphognostic(morphognostic);
+         for (int j = 0; j < NUM_RESPONSES; j++)
+         {
+            if ((d < 0.0) || (responseProbabilities[j] > d))
+            {
+               response = j;
+               d        = responseProbabilities[j];
+            }
+            else
+            {
+               if (responseProbabilities[j] == d)
+               {
+                  if (random.nextBoolean())
+                  {
+                     response = j;
+                     d        = responseProbabilities[j];
+                  }
+               }
+            }
+         }
+      }
+      morphognostic.orientation = Orientation.NORTH;
    }
 
 
@@ -467,9 +518,9 @@ public class Pufferfish
       {
          radius = r;
       }
-      ring = 0;
-      step = 0;
-      dir  = Orientation.WEST;
+      ring        = 0;
+      step        = 0;
+      orientation = Orientation.WEST;
    }
 
 
@@ -489,16 +540,15 @@ public class Pufferfish
       else
       {
          int steps = ring * 2;
-         switch (dir)
+         switch (orientation)
          {
          case Orientation.WEST:
-            if (step == steps)
+            if (step == (steps + 1))
             {
                if (ring < radius)
                {
-                  response = LEFT;
+                  response = TURN_LEFT;
                   ring++;
-                  dir  = Orientation.SOUTH;
                   step = 1;
                }
                else
@@ -508,7 +558,7 @@ public class Pufferfish
             }
             else
             {
-               response = LEFT;
+               response = FORWARD;
                step++;
             }
             break;
@@ -516,13 +566,12 @@ public class Pufferfish
          case Orientation.SOUTH:
             if (step == steps)
             {
-               response = RIGHT;
-               dir      = Orientation.EAST;
-               step     = 1;
+               response = TURN_LEFT;
+               step     = 0;
             }
             else
             {
-               response = DOWN;
+               response = FORWARD;
                step++;
             }
             break;
@@ -530,13 +579,12 @@ public class Pufferfish
          case Orientation.EAST:
             if (step == steps)
             {
-               response = UP;
-               dir      = Orientation.NORTH;
-               step     = 1;
+               response = TURN_LEFT;
+               step     = 0;
             }
             else
             {
-               response = RIGHT;
+               response = FORWARD;
                step++;
             }
             break;
@@ -544,13 +592,12 @@ public class Pufferfish
          case Orientation.NORTH:
             if (step == steps)
             {
-               response = LEFT;
-               dir      = Orientation.WEST;
-               step     = 1;
+               response = TURN_LEFT;
+               step     = 0;
             }
             else
             {
-               response = UP;
+               response = FORWARD;
                step++;
             }
             break;
@@ -562,22 +609,18 @@ public class Pufferfish
    // Random movement.
    void randomMovement()
    {
-      switch (random.nextInt(4))
+      switch (random.nextInt(3))
       {
       case 0:
-         response = UP;
+         response = FORWARD;
          return;
 
       case 1:
-         response = DOWN;
+         response = TURN_LEFT;
          return;
 
       case 2:
-         response = LEFT;
-         return;
-
-      case 3:
-         response = RIGHT;
+         response = TURN_RIGHT;
          return;
       }
    }
@@ -669,19 +712,17 @@ public class Pufferfish
       int a = 0;
       for (int i = 0; i < morphognostic.NUM_NEIGHBORHOODS; i++)
       {
-         int n = m.morphognostic.neighborhoods.get(i).sectors.length;
-         for (int x = 0; x < n; x++)
+         Neighborhood neighborhood = m.morphognostic.neighborhoods.get(i);
+         float[][][] densities = neighborhood.rectifySectorTypeDensities();
+         int n = neighborhood.sectors.length;
+         for (int j = 0, j2 = n * n; j < j2; j++)
          {
-            for (int y = 0; y < n; y++)
+            for (int d = 0, d2 = m.morphognostic.eventDimensions; d < d2; d++)
             {
-               Morphognostic.Neighborhood.Sector s = m.morphognostic.neighborhoods.get(i).sectors[x][y];
-               for (int d = 0; d < m.morphognostic.eventDimensions; d++)
+               for (int k = 0, k2 = m.morphognostic.numEventTypes[d]; k < k2; k++)
                {
-                  for (int j = 0; j < s.typeDensities[d].length; j++)
-                  {
-                     attrValues[a] = s.typeDensities[d][j];
-                     a++;
-                  }
+                  attrValues[a] = densities[j][d][k];
+                  a++;
                }
             }
          }
@@ -692,33 +733,31 @@ public class Pufferfish
    }
 
 
-   // Use metamorph NN to classify morphognostic as a response.
-   public int classifyMorphognostic(Morphognostic morphognostic)
+   // Use metamorph NN to get response probability distribution.
+   public double[] classifyMorphognostic(Morphognostic morphognostic)
    {
       Metamorph metamorph = new Metamorph(morphognostic, 0);
-      int       response  = 0;
+
+      //int       response  = 0;
 
       try
       {
          // Classify.
-         Instance instance        = createInstance(metamorphInstances, metamorph);
-         int      predictionIndex = (int)metamorphNN.classifyInstance(instance);
+         Instance instance = createInstance(metamorphInstances, metamorph);
+         //int      predictionIndex = (int)metamorphNN.classifyInstance(instance);
 
          // Get the predicted class label from the predictionIndex.
-         String predictedClassLabel = metamorphInstances.classAttribute().value(predictionIndex);
-         response = Integer.parseInt(predictedClassLabel);
+         //String predictedClassLabel = metamorphInstances.classAttribute().value(predictionIndex);
+         //response = Integer.parseInt(predictedClassLabel);
 
          // Get the prediction probability distribution.
-         //double[] predictionDistribution = metamorphNN.distributionForInstance(instance);
-
-         // Get morphognostic distance from prediction probability.
-         //float dist = (1.0f - (float)predictionDistribution[predictionIndex]);
+         return(metamorphNN.distributionForInstance(instance));
       }
       catch (Exception e)
       {
          System.err.println("Error classifying morphognostic:");
          e.printStackTrace();
       }
-      return(response);
+      return(null);
    }
 }

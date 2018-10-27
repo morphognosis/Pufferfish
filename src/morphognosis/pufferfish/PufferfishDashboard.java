@@ -140,21 +140,17 @@ public class PufferfishDashboard extends JFrame
       {
          setResponse("wait");
       }
-      else if (pufferfish.response == Pufferfish.UP)
+      else if (pufferfish.response == Pufferfish.FORWARD)
       {
-         setResponse("move up");
+         setResponse("forward");
       }
-      else if (pufferfish.response == Pufferfish.DOWN)
+      else if (pufferfish.response == Pufferfish.TURN_LEFT)
       {
-         setResponse("move down");
+         setResponse("turn left");
       }
-      else if (pufferfish.response == Pufferfish.LEFT)
+      else if (pufferfish.response == Pufferfish.TURN_RIGHT)
       {
-         setResponse("move left");
-      }
-      else if (pufferfish.response == Pufferfish.RIGHT)
-      {
-         setResponse("move right");
+         setResponse("turn right");
       }
       else if (pufferfish.response == Pufferfish.RAISE)
       {
@@ -258,10 +254,9 @@ public class PufferfishDashboard extends JFrame
 
       // Components.
       Choice   driverChoice;
-      JButton  moveUpButton;
-      JButton  moveDownButton;
-      JButton  moveLeftButton;
-      JButton  moveRightButton;
+      JButton  forwardButton;
+      JButton  turnLeftButton;
+      JButton  turnRightButton;
       JButton  raiseSurfaceButton;
       JButton  lowerSurfaceButton;
       Checkbox trainNNcheck;
@@ -286,18 +281,15 @@ public class PufferfishDashboard extends JFrame
          JPanel responsePanel = new JPanel();
          responsePanel.setLayout(new FlowLayout());
          add(responsePanel, BorderLayout.CENTER);
-         moveUpButton = new JButton("Up");
-         moveUpButton.addActionListener(this);
-         responsePanel.add(moveUpButton);
-         moveDownButton = new JButton("Down");
-         moveDownButton.addActionListener(this);
-         responsePanel.add(moveDownButton);
-         moveLeftButton = new JButton("Left");
-         moveLeftButton.addActionListener(this);
-         responsePanel.add(moveLeftButton);
-         moveRightButton = new JButton("Right");
-         moveRightButton.addActionListener(this);
-         responsePanel.add(moveRightButton);
+         forwardButton = new JButton("Forward");
+         forwardButton.addActionListener(this);
+         responsePanel.add(forwardButton);
+         turnLeftButton = new JButton("Turn left");
+         turnLeftButton.addActionListener(this);
+         responsePanel.add(turnLeftButton);
+         turnRightButton = new JButton("Turn right");
+         turnRightButton.addActionListener(this);
+         responsePanel.add(turnRightButton);
          raiseSurfaceButton = new JButton("Raise");
          raiseSurfaceButton.addActionListener(this);
          responsePanel.add(raiseSurfaceButton);
@@ -348,27 +340,21 @@ public class PufferfishDashboard extends JFrame
       // Button listener.
       public void actionPerformed(ActionEvent evt)
       {
-         if ((JButton)evt.getSource() == moveUpButton)
+         if ((JButton)evt.getSource() == forwardButton)
          {
-            pufferfish.driverResponse = Pufferfish.UP;
+            pufferfish.driverResponse = Pufferfish.FORWARD;
             return;
          }
 
-         if ((JButton)evt.getSource() == moveDownButton)
+         if ((JButton)evt.getSource() == turnLeftButton)
          {
-            pufferfish.driverResponse = Pufferfish.DOWN;
+            pufferfish.driverResponse = Pufferfish.TURN_LEFT;
             return;
          }
 
-         if ((JButton)evt.getSource() == moveLeftButton)
+         if ((JButton)evt.getSource() == turnRightButton)
          {
-            pufferfish.driverResponse = Pufferfish.LEFT;
-            return;
-         }
-
-         if ((JButton)evt.getSource() == moveRightButton)
-         {
-            pufferfish.driverResponse = Pufferfish.RIGHT;
+            pufferfish.driverResponse = Pufferfish.TURN_RIGHT;
             return;
          }
 

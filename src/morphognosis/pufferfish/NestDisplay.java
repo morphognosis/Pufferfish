@@ -9,6 +9,7 @@ import java.awt.event.*;
 import java.security.SecureRandom;
 import javax.swing.*;
 import javax.swing.event.*;
+import morphognosis.Orientation;
 
 public class NestDisplay extends JFrame
 {
@@ -59,7 +60,7 @@ public class NestDisplay extends JFrame
       pufferfishDashboard = new PufferfishDashboard(pufferfish, this);
 
       // Set up display.
-      setTitle("Pufferfish Nest");
+      setTitle("Pufferfish");
       addWindowListener(new WindowAdapter()
                         {
                            public void windowClosing(WindowEvent e)
@@ -346,6 +347,49 @@ public class NestDisplay extends JFrame
             vy[3] = y2 + (int)cellHeight;
             imageGraphics.drawPolygon(vx, vy, 4);
          }
+
+         // Draw pufferfish.
+         vx = new int[3];
+         vy = new int[3];
+         x2 = (int)(cellWidth * (double)pufferfish.x);
+         y2 = (int)(cellHeight * (double)(height - (pufferfish.y + 1)));
+         if (pufferfish.orientation == Orientation.NORTH)
+         {
+            vx[0] = x2 + (int)(cellWidth * 0.5f);
+            vy[0] = y2;
+            vx[1] = x2;
+            vy[1] = y2 + (int)cellHeight;
+            vx[2] = x2 + (int)cellWidth;
+            vy[2] = y2 + (int)cellHeight;
+         }
+         else if (pufferfish.orientation == Orientation.EAST)
+         {
+            vx[0] = x2 + (int)(cellWidth);
+            vy[0] = y2 + (int)(cellHeight * 0.5f);
+            vx[1] = x2;
+            vy[1] = y2;
+            vx[2] = x2;
+            vy[2] = y2 + (int)cellHeight;
+         }
+         else if (pufferfish.orientation == Orientation.SOUTH)
+         {
+            vx[0] = x2 + (int)(cellWidth * 0.5f);
+            vy[0] = y2 + (int)cellHeight;
+            vx[1] = x2;
+            vy[1] = y2;
+            vx[2] = x2 + (int)cellWidth;
+            vy[2] = y2;
+         }
+         else
+         {
+            vx[0] = x2;
+            vy[0] = y2 + (int)(cellHeight * 0.5f);
+            vx[1] = x2 + (int)cellWidth;
+            vy[1] = y2;
+            vx[2] = x2 + (int)cellWidth;
+            vy[2] = y2 + (int)cellHeight;
+         }
+         imageGraphics.fillPolygon(vx, vy, 3);
 
          // Refresh display.
          graphics.drawImage(image, 0, 0, this);
