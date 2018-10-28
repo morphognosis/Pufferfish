@@ -240,7 +240,7 @@ public class NestDisplay extends JFrame
          cellHeight = (float)canvasSize.height / (float)height;
 
          // Draw cells.
-         int n = Nest.MAX_ELEVATION_VALUE + 1;
+         int n = Nest.MAX_ELEVATION + 1;
          Color[] colors = new Color[n];
          for (int i = 0; i < n; i++)
          {

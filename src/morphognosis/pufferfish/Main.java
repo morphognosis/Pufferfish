@@ -51,9 +51,9 @@ public class Main
       "  New run:\n" +
       "    java morphognosis.pufferfish.Main\n" +
       "      -steps <steps> | -display\n" +
-      "      -dimensions <width> <height>\n" +
+      "      -nestDimensions <width> <height>\n" +
       "     [-driver <metamorphDB | metamorphNN | autopilot> (pufferfish driver: default=autopilot)]\n" +
-      "     [-maxElevation <quantity> (default=" + Nest.MAX_ELEVATION_VALUE + ")]\n" +
+      "     [-maxElevation <quantity> (default=" + Nest.MAX_ELEVATION + ")]\n" +
       "     [-numNeighborhoods <quantity> (default=" + Morphognostic.DEFAULT_NUM_NEIGHBORHOODS + ")]\n" +
       "     [-neighborhoodInitialDimension <quantity> (default=" + Morphognostic.DEFAULT_NEIGHBORHOOD_INITIAL_DIMENSION + ")]\n" +
       "     [-neighborhoodDimensionStride <quantity> (default=" + Morphognostic.DEFAULT_NEIGHBORHOOD_DIMENSION_STRIDE + ")]\n" +
@@ -106,7 +106,7 @@ public class Main
                     int EPOCH_INTERVAL_MULTIPLIER)
    {
       // Create nest.
-      nest = new Nest(new Dimension(width, height), NEST_IMAGE_FILE);
+      nest = new Nest(new Dimension(width, height), randomSeed);
 
       // Create pufferfish.
       pufferfish = new Pufferfish(0, nest, randomSeed,
@@ -496,7 +496,7 @@ public class Main
 
       case Pufferfish.RAISE:
          if (nest.cells[pufferfish.x][pufferfish.y][Nest.ELEVATION_CELL_INDEX] <
-             Nest.MAX_ELEVATION_VALUE)
+             Nest.MAX_ELEVATION)
          {
             nest.cells[pufferfish.x][pufferfish.y][Nest.ELEVATION_CELL_INDEX]++;
          }
@@ -615,12 +615,12 @@ public class Main
             display = true;
             continue;
          }
-         if (args[i].equals("-dimensions"))
+         if (args[i].equals("-nestDimensions"))
          {
             i++;
             if (i >= args.length)
             {
-               System.err.println("Invalid dimensions option");
+               System.err.println("Invalid nestDmensions option");
                System.err.println(Usage);
                System.exit(1);
             }
@@ -629,20 +629,20 @@ public class Main
                width = Integer.parseInt(args[i]);
             }
             catch (NumberFormatException e) {
-               System.err.println("Invalid width option");
+               System.err.println("Invalid nest width");
                System.err.println(Usage);
                System.exit(1);
             }
             if (width < 2)
             {
-               System.err.println("Invalid width option");
+               System.err.println("Invalid nest width");
                System.err.println(Usage);
                System.exit(1);
             }
             i++;
             if (i >= args.length)
             {
-               System.err.println("Invalid dimensions option");
+               System.err.println("Invalid nestDimensions option");
                System.err.println(Usage);
                System.exit(1);
             }
@@ -651,13 +651,13 @@ public class Main
                height = Integer.parseInt(args[i]);
             }
             catch (NumberFormatException e) {
-               System.err.println("Invalid height option");
+               System.err.println("Invalid nest height");
                System.err.println(Usage);
                System.exit(1);
             }
             if (height < 2)
             {
-               System.err.println("Invalid height option");
+               System.err.println("Invalid nest height");
                System.err.println(Usage);
                System.exit(1);
             }
@@ -703,14 +703,14 @@ public class Main
             }
             try
             {
-               Nest.MAX_ELEVATION_VALUE = Integer.parseInt(args[i]);
+               Nest.MAX_ELEVATION = Integer.parseInt(args[i]);
             }
             catch (NumberFormatException e) {
                System.err.println("Invalid maxElevation option");
                System.err.println(Usage);
                System.exit(1);
             }
-            if (Nest.MAX_ELEVATION_VALUE < 0)
+            if (Nest.MAX_ELEVATION < 0)
             {
                System.err.println("Invalid maxElevation option");
                System.err.println(Usage);
@@ -1085,6 +1085,7 @@ public class Main
          catch (Exception e)
          {
             System.err.println("Cannot save to file " + savefile + ": " + e.getMessage());
+            System.exit(1);
          }
       }
       System.exit(0);

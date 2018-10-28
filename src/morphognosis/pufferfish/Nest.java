@@ -5,6 +5,8 @@
 package morphognosis.pufferfish;
 
 import java.io.*;
+import java.security.SecureRandom;
+
 import javax.imageio.ImageIO;
 
 import morphognosis.SectorDisplay;
@@ -19,7 +21,7 @@ public class Nest
    // See SectorDisplay.EMPTY_CELL_VALUE.
    public static final int CELL_DIMENSIONS      = 1;
    public static final int ELEVATION_CELL_INDEX = 0;
-   public static int       MAX_ELEVATION_VALUE  = 10;
+   public static int       MAX_ELEVATION        = 10;
    public Dimension        size;
    public int[][][]        cells;
    public int[][][]        restoreCells;
@@ -28,6 +30,34 @@ public class Nest
    String nestImageFile;
 
    // Constructors.
+   public Nest(Dimension size, int randomSeed)
+   {
+      int x, y, width, height;
+
+      // Random numbers.
+      SecureRandom random = new SecureRandom();
+
+      random.setSeed(randomSeed);
+
+      // Create cells.
+      this.size    = size;
+      width        = size.width;
+      height       = size.height;
+      cells        = new int[width][height][CELL_DIMENSIONS];
+      restoreCells = new int[width][height][CELL_DIMENSIONS];
+      for (x = 0; x < size.width; x++)
+      {
+         for (y = 0; y < size.height; y++)
+         {
+            for (int d = 0; d < CELL_DIMENSIONS; d++)
+            {
+               cells[x][y][d] = restoreCells[x][y][d] = random.nextInt(MAX_ELEVATION + 1);
+            }
+         }
+      }
+   }
+
+
    public Nest(Dimension size, String nestImageFile)
    {
       int x, y, width, height;
@@ -129,7 +159,7 @@ public class Nest
       // Create cells image.
       int           w            = size.width;
       int           h            = size.height;
-      int           numCellTypes = MAX_ELEVATION_VALUE + 1;
+      int           numCellTypes = MAX_ELEVATION + 1;
       float         q            = 256.0f / (float)numCellTypes;
       Image         s            = image.getScaledInstance(w, h, Image.SCALE_DEFAULT);
       BufferedImage b            = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
@@ -179,7 +209,7 @@ public class Nest
 
       Utility.saveInt(writer, size.width);
       Utility.saveInt(writer, size.height);
-      Utility.saveInt(writer, MAX_ELEVATION_VALUE);
+      Utility.saveInt(writer, MAX_ELEVATION);
 
       for (x = 0; x < size.width; x++)
       {
@@ -229,9 +259,9 @@ public class Nest
 
       DataInputStream reader = new DataInputStream(input);
 
-      w = Utility.loadInt(reader);
-      h = Utility.loadInt(reader);
-      MAX_ELEVATION_VALUE = Utility.loadInt(reader);
+      w             = Utility.loadInt(reader);
+      h             = Utility.loadInt(reader);
+      MAX_ELEVATION = Utility.loadInt(reader);
 
       size.width   = w;
       size.height  = h;

@@ -131,7 +131,7 @@ public class Pufferfish
       int [] numEventTypes = new int[NUM_SENSORS];
       for (int i = 0; i < NUM_SENSORS; i++)
       {
-         numEventTypes[i] = Nest.MAX_ELEVATION_VALUE + 1;
+         numEventTypes[i] = Nest.MAX_ELEVATION + 1;
       }
       morphognostic = new Morphognostic(Orientation.NORTH, numEventTypes);
       Morphognostic.Neighborhood n = morphognostic.neighborhoods.get(morphognostic.NUM_NEIGHBORHOODS - 1);
@@ -158,7 +158,7 @@ public class Pufferfish
       int [] numEventTypes = new int[NUM_SENSORS];
       for (int i = 0; i < NUM_SENSORS; i++)
       {
-         numEventTypes[i] = Nest.MAX_ELEVATION_VALUE + 1;
+         numEventTypes[i] = Nest.MAX_ELEVATION + 1;
       }
       morphognostic = new Morphognostic(Orientation.NORTH, numEventTypes,
                                         NUM_NEIGHBORHOODS,
@@ -185,7 +185,7 @@ public class Pufferfish
       int [] numEventTypes = new int[NUM_SENSORS];
       for (int i = 0; i < NUM_SENSORS; i++)
       {
-         numEventTypes[i] = Nest.MAX_ELEVATION_VALUE + 1;
+         numEventTypes[i] = Nest.MAX_ELEVATION + 1;
       }
       morphognostic = new Morphognostic(Orientation.NORTH, numEventTypes);
       Morphognostic.Neighborhood n = morphognostic.neighborhoods.get(morphognostic.NUM_NEIGHBORHOODS - 1);
