@@ -57,7 +57,7 @@ public class PufferfishDashboard extends JFrame
       basePanel.add(sensorsResponse, BorderLayout.NORTH);
       driver = new DriverPanel();
       basePanel.add(driver, BorderLayout.CENTER);
-      morphognostic = new MorphognosticDisplay(pufferfish.id, pufferfish.morphognostic);
+      morphognostic = new MorphognosticDisplay(0, pufferfish.morphognostic);
       basePanel.add(morphognostic, BorderLayout.SOUTH);
       pack();
       setCenterLocation();

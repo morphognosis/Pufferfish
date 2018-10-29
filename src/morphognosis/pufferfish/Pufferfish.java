@@ -32,7 +32,6 @@ import weka.core.converters.ArffSaver;
 public class Pufferfish
 {
    // Properties.
-   public int          id;
    public int          x, y;
    public int          orientation;
    public Nest         nest;
@@ -125,9 +124,8 @@ public class Pufferfish
    int step;
 
    // Constructors.
-   public Pufferfish(int id, Nest nest, int randomSeed)
+   public Pufferfish(Nest nest, int randomSeed)
    {
-      this.id         = id;
       this.nest       = nest;
       this.randomSeed = randomSeed;
       random          = new SecureRandom();
@@ -146,7 +144,7 @@ public class Pufferfish
    }
 
 
-   public Pufferfish(int id, Nest nest, int randomSeed,
+   public Pufferfish(Nest nest, int randomSeed,
                      int NUM_NEIGHBORHOODS,
                      int NEIGHBORHOOD_INITIAL_DIMENSION,
                      int NEIGHBORHOOD_DIMENSION_STRIDE,
@@ -154,7 +152,6 @@ public class Pufferfish
                      int EPOCH_INTERVAL_STRIDE,
                      int EPOCH_INTERVAL_MULTIPLIER)
    {
-      this.id         = id;
       this.nest       = nest;
       this.randomSeed = randomSeed;
       random          = new SecureRandom();
@@ -172,27 +169,6 @@ public class Pufferfish
                                         NEIGHBORHOOD_DIMENSION_MULTIPLIER,
                                         EPOCH_INTERVAL_STRIDE,
                                         EPOCH_INTERVAL_MULTIPLIER);
-      Morphognostic.Neighborhood n = morphognostic.neighborhoods.get(morphognostic.NUM_NEIGHBORHOODS - 1);
-      maxEventAge = n.epoch + n.duration - 1;
-      metamorphs  = new ArrayList<Metamorph>();
-      initMetamorphNN();
-   }
-
-
-   public Pufferfish(Nest nest, int randomSeed)
-   {
-      id              = -1;
-      this.nest       = nest;
-      this.randomSeed = randomSeed;
-      random          = new SecureRandom();
-      random.setSeed(randomSeed);
-      init();
-      int [] numEventTypes = new int[NUM_SENSORS];
-      for (int i = 0; i < NUM_SENSORS; i++)
-      {
-         numEventTypes[i] = Nest.MAX_ELEVATION + 1;
-      }
-      morphognostic = new Morphognostic(Orientation.NORTH, numEventTypes);
       Morphognostic.Neighborhood n = morphognostic.neighborhoods.get(morphognostic.NUM_NEIGHBORHOODS - 1);
       maxEventAge = n.epoch + n.duration - 1;
       metamorphs  = new ArrayList<Metamorph>();
@@ -275,7 +251,6 @@ public class Pufferfish
    // Save pufferfish.
    public void save(DataOutputStream writer) throws IOException
    {
-      Utility.saveInt(writer, id);
       Utility.saveInt(writer, x);
       Utility.saveInt(writer, y);
       Utility.saveInt(writer, orientation);
@@ -319,7 +294,6 @@ public class Pufferfish
       // DataInputStream is for unbuffered input.
       DataInputStream reader = new DataInputStream(input);
 
-      id            = Utility.loadInt(reader);
       x             = Utility.loadInt(reader);
       y             = Utility.loadInt(reader);
       orientation   = Utility.loadInt(reader);

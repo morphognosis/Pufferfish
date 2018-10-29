@@ -110,7 +110,7 @@ public class Main
       nest = new Nest(new Dimension(width, height), randomSeed);
 
       // Create pufferfish.
-      pufferfish = new Pufferfish(0, nest, randomSeed,
+      pufferfish = new Pufferfish(nest, randomSeed,
                                   NUM_NEIGHBORHOODS,
                                   NEIGHBORHOOD_INITIAL_DIMENSION,
                                   NEIGHBORHOOD_DIMENSION_STRIDE,
