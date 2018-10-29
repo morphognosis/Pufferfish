@@ -4,11 +4,31 @@
 
 package morphognosis.pufferfish;
 
-import java.awt.*;
-import java.awt.event.*;
+import java.awt.BorderLayout;
+import java.awt.Canvas;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Graphics;
+import java.awt.Image;
+import java.awt.Label;
+import java.awt.Toolkit;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionAdapter;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.security.SecureRandom;
-import javax.swing.*;
-import javax.swing.event.*;
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JSlider;
+import javax.swing.JTextField;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import morphognosis.Orientation;
 
 public class NestDisplay extends JFrame
@@ -25,7 +45,7 @@ public class NestDisplay extends JFrame
    Nest nest;
 
    // Dimensions.
-   static final Dimension DISPLAY_SIZE = new Dimension(600, 700);
+   public static final Dimension DISPLAY_SIZE = new Dimension(600, 700);
 
    // Pufferfish display.
    PufferfishDisplay display;
@@ -189,10 +209,14 @@ public class NestDisplay extends JFrame
       final Color PUFFERFISH_COLOR = Color.RED;
 
       // Buffered display.
-      private Dimension canvasSize;
-      private Graphics  graphics;
-      private Image     image;
-      private Graphics  imageGraphics;
+      Dimension canvasSize;
+      Graphics  graphics;
+      Image     image;
+      Graphics  imageGraphics;
+
+      // Sizes.
+      int   width, height;
+      float cellWidth, cellHeight;
 
       // Constructor.
       public PufferfishDisplay(Dimension canvasSize)
@@ -202,42 +226,36 @@ public class NestDisplay extends JFrame
          setBounds(0, 0, canvasSize.width, canvasSize.height);
          addMouseListener(new CanvasMouseListener());
          addMouseMotionListener(new CanvasMouseMotionListener());
+
+         // Compute sizes.
+         width      = nest.size.width;
+         height     = nest.size.height;
+         cellWidth  = (float)canvasSize.width / (float)width;
+         cellHeight = (float)canvasSize.height / (float)height;
       }
 
 
       // Update display.
-      synchronized void update()
+      void update()
       {
-         int x, y, x2, y2, cx, cy, width, height;
+         int x, y, x2, y2, cx, cy;
 
          int[] vx, vy;
-         float cellWidth, cellHeight;
-
-         if (quit)
-         {
-            return;
-         }
 
          if (graphics == null)
          {
-            graphics      = getGraphics();
+            graphics = getGraphics();
+            if (graphics == null)
+            {
+               return;
+            }
             image         = createImage(canvasSize.width, canvasSize.height);
             imageGraphics = image.getGraphics();
-         }
-
-         if (graphics == null)
-         {
-            return;
          }
 
          // Clear display.
          imageGraphics.setColor(Color.white);
          imageGraphics.fillRect(0, 0, canvasSize.width, canvasSize.height);
-
-         width      = nest.size.width;
-         height     = nest.size.height;
-         cellWidth  = (float)canvasSize.width / (float)width;
-         cellHeight = (float)canvasSize.height / (float)height;
 
          // Draw cells.
          int n = Nest.MAX_ELEVATION + 1;
@@ -402,11 +420,7 @@ public class NestDisplay extends JFrame
          // Mouse pressed.
          public void mousePressed(MouseEvent evt)
          {
-            int    x, y, x2, y2, cx, cy;
-            int    width      = nest.size.width;
-            int    height     = nest.size.height;
-            double cellWidth  = (double)canvasSize.width / (double)width;
-            double cellHeight = (double)canvasSize.height / (double)height;
+            int x, y, x2, y2, cx, cy;
 
             // Selecting pufferfish?
             x = (int)((double)evt.getX() / cellWidth);

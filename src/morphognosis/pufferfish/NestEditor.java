@@ -4,10 +4,26 @@
 
 package morphognosis.pufferfish;
 
-import java.awt.*;
-import java.awt.event.*;
+import java.awt.BorderLayout;
+import java.awt.Canvas;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.FontMetrics;
+import java.awt.Graphics;
+import java.awt.Image;
+import java.awt.Toolkit;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionAdapter;
+import java.awt.event.MouseWheelEvent;
+import java.awt.event.MouseWheelListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.security.SecureRandom;
-import javax.swing.*;
+import javax.swing.JFrame;
+import javax.swing.JPanel;
+import javax.swing.UIManager;
 
 public class NestEditor extends JFrame
 {
@@ -32,7 +48,10 @@ public class NestEditor extends JFrame
    Nest nest;
 
    // Display size.
-   static final Dimension DISPLAY_SIZE = new Dimension(600, 600);
+   public static final Dimension DISPLAY_SIZE = new Dimension(600, 600);
+
+   // Display update frequency (ms).
+   public static final int DISPLAY_DELAY = 50;
 
    // Nest display.
    NestDisplay display;
@@ -55,6 +74,7 @@ public class NestEditor extends JFrame
 
       // Set up display.
       setTitle("Pufferfish nest editor");
+      quit = false;
       addWindowListener(new WindowAdapter()
                         {
                            public void windowClosing(WindowEvent e)
@@ -101,9 +121,10 @@ public class NestEditor extends JFrame
 
          try
          {
-            Thread.sleep(1);
+            Thread.sleep(DISPLAY_DELAY);
          }
-         catch (InterruptedException e) {
+         catch (InterruptedException e)
+         {
             break;
          }
       }
@@ -111,15 +132,36 @@ public class NestEditor extends JFrame
 
 
    // Nest display.
-   public class NestDisplay extends Canvas
+   public class NestDisplay extends Canvas implements MouseWheelListener
    {
       private static final long serialVersionUID = 0L;
 
       // Buffered display.
-      private Dimension canvasSize;
-      private Graphics  graphics;
-      private Image     image;
-      private Graphics  imageGraphics;
+      Dimension canvasSize;
+      Graphics  graphics;
+      Image     image;
+      Graphics  imageGraphics;
+
+      // Font.
+      Font        font = new Font("Helvetica", Font.BOLD, 16);
+      FontMetrics fontMetrics;
+      int         fontAscent;
+      int         fontWidth;
+      int         fontHeight;
+
+      // Fish elevation for "plowing" surface.
+      int fishElevation;
+
+      // Fish information message switch.
+      private boolean fishInfoMsg;
+
+      // Cell size.
+      int   width, height;
+      float cellWidth;
+      float cellHeight;
+
+      // Selected cell.
+      int selectedX, selectedY;
 
       // Constructor.
       public NestDisplay(Dimension canvasSize)
@@ -129,40 +171,48 @@ public class NestEditor extends JFrame
          setBounds(0, 0, canvasSize.width, canvasSize.height);
          addMouseListener(new CanvasMouseListener());
          addMouseMotionListener(new CanvasMouseMotionListener());
+         addMouseWheelListener(this);
+
+         // Set fish elevation.
+         fishElevation = 0;
+         fishInfoMsg   = true;
+
+         // Compute sizes.
+         width      = nest.size.width;
+         height     = nest.size.height;
+         cellWidth  = (float)canvasSize.width / (float)width;
+         cellHeight = (float)canvasSize.height / (float)height;
+
+         // Initialize selected cell.
+         selectedX = selectedY = -1;
       }
 
 
       // Update display.
-      synchronized void update()
+      void update()
       {
-         int   x, y, x2, y2, width, height;
-         float cellWidth, cellHeight;
-
-         if (quit)
-         {
-            return;
-         }
+         int x, y, x2, y2;
 
          if (graphics == null)
          {
-            graphics      = getGraphics();
+            graphics = getGraphics();
+            if (graphics == null)
+            {
+               return;
+            }
             image         = createImage(canvasSize.width, canvasSize.height);
             imageGraphics = image.getGraphics();
-         }
-
-         if (graphics == null)
-         {
-            return;
+            graphics.setFont(font);
+            imageGraphics.setFont(font);
+            fontMetrics = graphics.getFontMetrics();
+            fontAscent  = fontMetrics.getMaxAscent();
+            fontWidth   = fontMetrics.getMaxAdvance();
+            fontHeight  = fontMetrics.getHeight();
          }
 
          // Clear display.
          imageGraphics.setColor(Color.white);
          imageGraphics.fillRect(0, 0, canvasSize.width, canvasSize.height);
-
-         width      = nest.size.width;
-         height     = nest.size.height;
-         cellWidth  = (float)canvasSize.width / (float)width;
-         cellHeight = (float)canvasSize.height / (float)height;
 
          // Draw cells.
          int n = Nest.MAX_ELEVATION + 1;
@@ -201,7 +251,15 @@ public class NestEditor extends JFrame
          {
             imageGraphics.drawLine(0, y2, x2, y2);
          }
-         imageGraphics.setColor(Color.black);
+
+         // Draw fish level.
+         imageGraphics.setColor(Color.yellow);
+         String s = "Fish elevation=" + fishElevation;
+         if (fishInfoMsg)
+         {
+            s += " (Scroll to change elevation. Plow with mouse.)";
+         }
+         imageGraphics.drawString(s, 2, fontHeight);
 
          // Refresh display.
          graphics.drawImage(image, 0, 0, this);
@@ -214,32 +272,142 @@ public class NestEditor extends JFrame
          // Mouse pressed.
          public void mousePressed(MouseEvent evt)
          {
-            int    x, y;
-            int    width      = nest.size.width;
-            int    height     = nest.size.height;
-            double cellWidth  = (double)canvasSize.width / (double)width;
-            double cellHeight = (double)canvasSize.height / (double)height;
+            fishInfoMsg = false;
 
-            x = (int)((double)evt.getX() / cellWidth);
-            y = height - (int)((double)evt.getY() / cellHeight) - 1;
+            int x = (int)((double)evt.getX() / cellWidth);
+            int y = height - (int)((double)evt.getY() / cellHeight) - 1;
 
             if ((x >= 0) && (x < width) &&
                 (y >= 0) && (y < height))
             {
+               selectedX = x;
+               selectedY = y;
             }
+         }
 
-            // Refresh display.
-            update();
+
+         // Mouse released.
+         public void mouseReleased(MouseEvent evt)
+         {
+            fishInfoMsg = false;
+            selectedX   = selectedY = -1;
          }
       }
-   }
 
-   // Canvas mouse motion listener.
-   class CanvasMouseMotionListener extends MouseMotionAdapter
-   {
-      // Mouse dragged.
-      public void mouseDragged(MouseEvent evt)
+      // Canvas mouse motion listener.
+      class CanvasMouseMotionListener extends MouseMotionAdapter
       {
+         // Mouse dragged.
+         public void mouseDragged(MouseEvent evt)
+         {
+            fishInfoMsg = false;
+
+            int x = (int)((double)evt.getX() / cellWidth);
+            int y = height - (int)((double)evt.getY() / cellHeight) - 1;
+
+            if ((x >= 0) && (x < width) &&
+                (y >= 0) && (y < height))
+            {
+               if ((selectedX != -1) && (fishElevation < nest.cells[selectedX][selectedY][0]))
+               {
+                  if ((selectedX != x) || (selectedY != y))
+                  {
+                     int[] plowX = new int[3];
+                     int[] plowY = new int[3];
+                     if (x < selectedX)
+                     {
+                        for (int i = 0; i < 3; i++)
+                        {
+                           plowX[i] = x;
+                        }
+                        plowY[0] = (y + 1) % height;
+                        plowY[1] = y;
+                        plowY[2] = y - 1;
+                        if (plowY[2] < 0)
+                        {
+                           plowY[2] += height;
+                        }
+                     }
+                     else if (x > selectedX)
+                     {
+                        for (int i = 0; i < 3; i++)
+                        {
+                           plowX[i] = x;
+                        }
+                        plowY[0] = (y + 1) % height;
+                        plowY[1] = y;
+                        plowY[2] = y - 1;
+                        if (plowY[2] < 0)
+                        {
+                           plowY[2] += height;
+                        }
+                     }
+                     else if (y < selectedY)
+                     {
+                        for (int i = 0; i < 3; i++)
+                        {
+                           plowY[i] = y;
+                        }
+                        plowX[0] = (x + 1) % width;
+                        plowX[1] = x;
+                        plowX[2] = x - 1;
+                        if (plowX[2] < 0)
+                        {
+                           plowX[2] += width;
+                        }
+                     }
+                     else if (y > selectedY)
+                     {
+                        for (int i = 0; i < 3; i++)
+                        {
+                           plowY[i] = y;
+                        }
+                        plowX[0] = (x + 1) % width;
+                        plowX[1] = x;
+                        plowX[2] = x - 1;
+                        if (plowX[2] < 0)
+                        {
+                           plowX[2] += width;
+                        }
+                     }
+                     int n = nest.cells[selectedX][selectedY][0] - fishElevation;
+                     nest.cells[selectedX][selectedY][0] = fishElevation;
+                     nest.cells[plowX[1]][plowY[1]][0]  += n;
+                     if (nest.cells[plowX[1]][plowY[1]][0] > Nest.MAX_ELEVATION)
+                     {
+                        nest.cells[plowX[1]][plowY[1]][0] = Nest.MAX_ELEVATION;
+                     }
+                     //int j = random.nextInt(3);
+                     //for (int i = 0; i < n; i++)
+                     //{
+                     //nest.cells[plowX[j]][plowY[j]][0]++;
+                     //if (nest.cells[plowX[j]][plowY[j]][0] > Nest.MAX_ELEVATION)
+                     //{
+                     //nest.cells[plowX[j]][plowY[j]][0] = Nest.MAX_ELEVATION;
+                     //}
+                     //j = (j + 1) % 3;
+                     //}
+                  }
+               }
+               selectedX = x;
+               selectedY = y;
+            }
+         }
+      }
+
+      // Mouse wheel moved.
+      public void mouseWheelMoved(MouseWheelEvent e)
+      {
+         fishInfoMsg    = false;
+         fishElevation += e.getWheelRotation();
+         if (fishElevation < 0)
+         {
+            fishElevation = 0;
+         }
+         else if (fishElevation > Nest.MAX_ELEVATION)
+         {
+            fishElevation = Nest.MAX_ELEVATION;
+         }
       }
    }
 

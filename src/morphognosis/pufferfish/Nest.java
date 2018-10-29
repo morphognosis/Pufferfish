@@ -4,16 +4,21 @@
 
 package morphognosis.pufferfish;
 
-import java.io.*;
 import java.security.SecureRandom;
-
 import javax.imageio.ImageIO;
-
 import morphognosis.SectorDisplay;
 import morphognosis.Utility;
-
-import java.awt.*;
+import java.awt.Dimension;
+import java.awt.Graphics;
+import java.awt.Image;
 import java.awt.image.BufferedImage;
+import java.io.BufferedOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 
 public class Nest
 {
@@ -185,32 +190,29 @@ public class Nest
    // Save cells.
    public void save(String filename) throws IOException
    {
-      FileOutputStream output;
+      DataOutputStream writer;
 
       try
       {
-         output = new FileOutputStream(new File(filename));
+         writer = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(new File(filename))));
       }
       catch (Exception e)
       {
          throw new IOException("Cannot open output file " + filename + ":" + e.getMessage());
       }
-      save(output);
-      output.close();
+      save(writer);
+      writer.close();
    }
 
 
    // Save cells.
-   public void save(FileOutputStream output) throws IOException
+   public void save(DataOutputStream writer) throws IOException
    {
       int x, y;
-
-      DataOutputStream writer = new DataOutputStream(new BufferedOutputStream(output));
 
       Utility.saveInt(writer, size.width);
       Utility.saveInt(writer, size.height);
       Utility.saveInt(writer, MAX_ELEVATION);
-
       for (x = 0; x < size.width; x++)
       {
          for (y = 0; y < size.height; y++)
@@ -221,7 +223,6 @@ public class Nest
             }
          }
       }
-
       for (x = 0; x < size.width; x++)
       {
          for (y = 0; y < size.height; y++)
@@ -232,6 +233,7 @@ public class Nest
             }
          }
       }
+      writer.flush();
    }
 
 

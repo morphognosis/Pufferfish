@@ -4,11 +4,16 @@
 
 package morphognosis.pufferfish;
 
-import java.io.*;
+import java.io.BufferedOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Vector;
-
 import morphognosis.Metamorph;
 import morphognosis.Morphognostic;
 import morphognosis.Morphognostic.Neighborhood;
@@ -252,26 +257,24 @@ public class Pufferfish
    // Save pufferfish to file.
    public void save(String filename) throws IOException
    {
-      FileOutputStream output;
+      DataOutputStream writer;
 
       try
       {
-         output = new FileOutputStream(new File(filename));
+         writer = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(new File(filename))));
       }
       catch (Exception e)
       {
          throw new IOException("Cannot open output file " + filename + ":" + e.getMessage());
       }
-      save(output);
-      output.close();
+      save(writer);
+      writer.close();
    }
 
 
    // Save pufferfish.
-   public void save(FileOutputStream output) throws IOException
+   public void save(DataOutputStream writer) throws IOException
    {
-      DataOutputStream writer = new DataOutputStream(new BufferedOutputStream(output));
-
       Utility.saveInt(writer, id);
       Utility.saveInt(writer, x);
       Utility.saveInt(writer, y);
