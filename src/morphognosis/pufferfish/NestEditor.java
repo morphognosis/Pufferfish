@@ -175,6 +175,9 @@ public class NestEditor extends JFrame
       // Selected cell.
       int selectedX, selectedY;
 
+      // Lock.
+      private Object lock;
+
       // Constructor.
       public NestDisplay(Dimension canvasSize)
       {
@@ -198,6 +201,9 @@ public class NestEditor extends JFrame
 
          // Initialize selected cell.
          selectedX = selectedY = -1;
+
+         // Get synchronization lock.
+         lock = new Object();
       }
 
 
@@ -206,121 +212,124 @@ public class NestEditor extends JFrame
       {
          int x, y, x2, y2;
 
-         if (graphics == null)
+         synchronized (lock)
          {
-            graphics = getGraphics();
             if (graphics == null)
             {
-               return;
+               graphics = getGraphics();
+               if (graphics == null)
+               {
+                  return;
+               }
+               image         = createImage(canvasSize.width, canvasSize.height);
+               imageGraphics = image.getGraphics();
+               graphics.setFont(font);
+               imageGraphics.setFont(font);
+               fontMetrics = graphics.getFontMetrics();
+               fontAscent  = fontMetrics.getMaxAscent();
+               fontWidth   = fontMetrics.getMaxAdvance();
+               fontHeight  = fontMetrics.getHeight();
+               requestFocusInWindow();
             }
-            image         = createImage(canvasSize.width, canvasSize.height);
-            imageGraphics = image.getGraphics();
-            graphics.setFont(font);
-            imageGraphics.setFont(font);
-            fontMetrics = graphics.getFontMetrics();
-            fontAscent  = fontMetrics.getMaxAscent();
-            fontWidth   = fontMetrics.getMaxAdvance();
-            fontHeight  = fontMetrics.getHeight();
-            requestFocusInWindow();
-         }
 
-         // Clear display.
-         imageGraphics.setColor(Color.white);
-         imageGraphics.fillRect(0, 0, canvasSize.width, canvasSize.height);
+            // Clear display.
+            imageGraphics.setColor(Color.white);
+            imageGraphics.fillRect(0, 0, canvasSize.width, canvasSize.height);
 
-         // Draw cells.
-         int n = Nest.MAX_ELEVATION + 1;
-         Color[] colors = new Color[n];
-         for (int i = 0; i < n; i++)
-         {
-            float s = (float)(n - (i + 1)) / (float)(n - 1);
-            int   r = 255 - (int)(255.0f * s);
-            int   g = 255 - (int)(255.0f * s);
-            int   b = 255 - (int)(255.0f * s);
-            colors[i] = new Color(r, g, b);
-         }
-         for (x = x2 = 0; x < width;
-              x++, x2 = (int)(cellWidth * (double)x))
-         {
-            for (y = 0, y2 = canvasSize.height - (int)cellHeight;
-                 y < height;
-                 y++, y2 = (int)(cellHeight * (double)(height - (y + 1))))
+            // Draw cells.
+            int n = Nest.MAX_ELEVATION + 1;
+            Color[] colors = new Color[n];
+            for (int i = 0; i < n; i++)
             {
-               imageGraphics.setColor(colors[nest.cells[x][y][Nest.ELEVATION_CELL_INDEX]]);
-               imageGraphics.fillRect(x2, y2, (int)cellWidth + 1, (int)cellHeight + 1);
+               float s = (float)(n - (i + 1)) / (float)(n - 1);
+               int   r = 255 - (int)(255.0f * s);
+               int   g = 255 - (int)(255.0f * s);
+               int   b = 255 - (int)(255.0f * s);
+               colors[i] = new Color(r, g, b);
             }
-         }
+            for (x = x2 = 0; x < width;
+                 x++, x2 = (int)(cellWidth * (double)x))
+            {
+               for (y = 0, y2 = canvasSize.height - (int)cellHeight;
+                    y < height;
+                    y++, y2 = (int)(cellHeight * (double)(height - (y + 1))))
+               {
+                  imageGraphics.setColor(colors[nest.cells[x][y][Nest.ELEVATION_CELL_INDEX]]);
+                  imageGraphics.fillRect(x2, y2, (int)cellWidth + 1, (int)cellHeight + 1);
+               }
+            }
 
-         // Draw grid.
-         imageGraphics.setColor(Color.black);
-         y2 = canvasSize.height;
-         for (x = 1, x2 = (int)cellWidth; x < width;
-              x++, x2 = (int)(cellWidth * (double)x))
-         {
-            imageGraphics.drawLine(x2, 0, x2, y2);
-         }
-         x2 = canvasSize.width;
-         for (y = 1, y2 = (int)cellHeight; y < height;
-              y++, y2 = (int)(cellHeight * (double)y))
-         {
-            imageGraphics.drawLine(0, y2, x2, y2);
-         }
+            // Draw grid.
+            imageGraphics.setColor(Color.black);
+            y2 = canvasSize.height;
+            for (x = 1, x2 = (int)cellWidth; x < width;
+                 x++, x2 = (int)(cellWidth * (double)x))
+            {
+               imageGraphics.drawLine(x2, 0, x2, y2);
+            }
+            x2 = canvasSize.width;
+            for (y = 1, y2 = (int)cellHeight; y < height;
+                 y++, y2 = (int)(cellHeight * (double)y))
+            {
+               imageGraphics.drawLine(0, y2, x2, y2);
+            }
 
-         // Draw pufferfish.
-         int[] vx = new int[3];
-         int[] vy = new int[3];
-         x2       = (int)(cellWidth * (double)pufferfish.x);
-         y2       = (int)(cellHeight * (double)(height - (pufferfish.y + 1)));
-         if (pufferfish.orientation == Orientation.NORTH)
-         {
-            vx[0] = x2 + (int)(cellWidth * 0.5f);
-            vy[0] = y2;
-            vx[1] = x2;
-            vy[1] = y2 + (int)cellHeight;
-            vx[2] = x2 + (int)cellWidth;
-            vy[2] = y2 + (int)cellHeight;
-         }
-         else if (pufferfish.orientation == Orientation.EAST)
-         {
-            vx[0] = x2 + (int)(cellWidth);
-            vy[0] = y2 + (int)(cellHeight * 0.5f);
-            vx[1] = x2;
-            vy[1] = y2;
-            vx[2] = x2;
-            vy[2] = y2 + (int)cellHeight;
-         }
-         else if (pufferfish.orientation == Orientation.SOUTH)
-         {
-            vx[0] = x2 + (int)(cellWidth * 0.5f);
-            vy[0] = y2 + (int)cellHeight;
-            vx[1] = x2;
-            vy[1] = y2;
-            vx[2] = x2 + (int)cellWidth;
-            vy[2] = y2;
-         }
-         else
-         {
-            vx[0] = x2;
-            vy[0] = y2 + (int)(cellHeight * 0.5f);
-            vx[1] = x2 + (int)cellWidth;
-            vy[1] = y2;
-            vx[2] = x2 + (int)cellWidth;
-            vy[2] = y2 + (int)cellHeight;
-         }
-         imageGraphics.setColor(Color.red);
-         imageGraphics.fillPolygon(vx, vy, 3);
+            // Draw pufferfish.
+            int[] vx = new int[3];
+            int[] vy = new int[3];
+            x2       = (int)(cellWidth * (double)pufferfish.x);
+            y2       = (int)(cellHeight * (double)(height - (pufferfish.y + 1)));
+            if (pufferfish.orientation == Orientation.NORTH)
+            {
+               vx[0] = x2 + (int)(cellWidth * 0.5f);
+               vy[0] = y2;
+               vx[1] = x2;
+               vy[1] = y2 + (int)cellHeight;
+               vx[2] = x2 + (int)cellWidth;
+               vy[2] = y2 + (int)cellHeight;
+            }
+            else if (pufferfish.orientation == Orientation.EAST)
+            {
+               vx[0] = x2 + (int)(cellWidth);
+               vy[0] = y2 + (int)(cellHeight * 0.5f);
+               vx[1] = x2;
+               vy[1] = y2;
+               vx[2] = x2;
+               vy[2] = y2 + (int)cellHeight;
+            }
+            else if (pufferfish.orientation == Orientation.SOUTH)
+            {
+               vx[0] = x2 + (int)(cellWidth * 0.5f);
+               vy[0] = y2 + (int)cellHeight;
+               vx[1] = x2;
+               vy[1] = y2;
+               vx[2] = x2 + (int)cellWidth;
+               vy[2] = y2;
+            }
+            else
+            {
+               vx[0] = x2;
+               vy[0] = y2 + (int)(cellHeight * 0.5f);
+               vx[1] = x2 + (int)cellWidth;
+               vy[1] = y2;
+               vx[2] = x2 + (int)cellWidth;
+               vy[2] = y2 + (int)cellHeight;
+            }
+            imageGraphics.setColor(Color.red);
+            imageGraphics.fillPolygon(vx, vy, 3);
 
-         // Draw fish level.
-         imageGraphics.setColor(Color.yellow);
-         String s = "Fish elevation=" + fishElevation;
-         if (fishInfoMsg)
-         {
-            s += " (Scroll to change elevation. Plow with arrows or mouse.)";
-         }
-         imageGraphics.drawString(s, 2, fontHeight);
+            // Draw fish level.
+            imageGraphics.setColor(Color.yellow);
+            String s = "Fish elevation=" + fishElevation;
+            if (fishInfoMsg)
+            {
+               s += " (Scroll to change elevation. Plow with arrows or mouse.)";
+            }
+            imageGraphics.drawString(s, 2, fontHeight);
 
-         // Refresh display.
-         graphics.drawImage(image, 0, 0, this);
+            // Refresh display.
+            graphics.drawImage(image, 0, 0, this);
+         }
       }
 
 
@@ -474,85 +483,87 @@ public class NestEditor extends JFrame
       // Plow the surface.
       void plow(int fromX, int fromY, int toX, int toY)
       {
-         if (fishElevation < nest.cells[fromX][fromY][0])
+         synchronized (lock)
          {
-            if ((fromX != toX) || (fromY != toY))
+            if (fishElevation < nest.cells[toX][toY][0])
             {
-               int[] plowX = new int[3];
-               int[] plowY = new int[3];
-               if (toX < fromX)
+               if ((fromX != toX) || (fromY != toY))
                {
-                  for (int i = 0; i < 3; i++)
+                  int[] plowX = new int[3];
+                  int[] plowY = new int[3];
+                  if ((toX < fromX) || ((toX == (width - 1)) && (fromX == 0)))
                   {
-                     plowX[i] = toX;
+                     plowX[0] = toX;
+                     plowX[1] = toX - 1;
+                     if (plowX[1] < 0)
+                     {
+                        plowX[1] += width;
+                     }
+                     plowX[2] = toX;
+                     plowY[0] = (toY + 1) % height;
+                     plowY[1] = toY;
+                     plowY[2] = toY - 1;
+                     if (plowY[2] < 0)
+                     {
+                        plowY[2] += height;
+                     }
                   }
-                  plowY[0] = (toY + 1) % height;
-                  plowY[1] = toY;
-                  plowY[2] = toY - 1;
-                  if (plowY[2] < 0)
+                  else if ((toX > fromX) || ((toX == 0) && (fromX == (width - 1))))
                   {
-                     plowY[2] += height;
+                     plowX[0] = toX;
+                     plowX[1] = (toX + 1) % width;
+                     plowX[2] = toX;
+                     plowY[0] = (toY + 1) % height;
+                     plowY[1] = toY;
+                     plowY[2] = toY - 1;
+                     if (plowY[2] < 0)
+                     {
+                        plowY[2] += height;
+                     }
+                  }
+                  else if ((toY < fromY) || ((toY == (height - 1)) && (fromY == 0)))
+                  {
+                     plowY[0] = toY;
+                     plowY[1] = toY - 1;
+                     if (plowY[1] < 0)
+                     {
+                        plowY[1] += height;
+                     }
+                     plowY[2] = toY;
+                     plowX[0] = (toX + 1) % width;
+                     plowX[1] = toX;
+                     plowX[2] = toX - 1;
+                     if (plowX[2] < 0)
+                     {
+                        plowX[2] += width;
+                     }
+                  }
+                  else if ((toY > fromY) || ((toY == 0) && (fromY == (height - 1))))
+                  {
+                     plowY[0] = toY;
+                     plowY[1] = (toY + 1) % height;
+                     plowY[2] = toY;
+                     plowX[0] = (toX + 1) % width;
+                     plowX[1] = toX;
+                     plowX[2] = toX - 1;
+                     if (plowX[2] < 0)
+                     {
+                        plowX[2] += width;
+                     }
+                  }
+                  int n = nest.cells[toX][toY][Nest.ELEVATION_CELL_INDEX] - fishElevation;
+                  nest.cells[toX][toY][0] = fishElevation;
+                  int j = random.nextInt(3);
+                  for (int i = 0; i < n; i++)
+                  {
+                     nest.cells[plowX[j]][plowY[j]][0]++;
+                     if (nest.cells[plowX[j]][plowY[j]][0] > Nest.MAX_ELEVATION)
+                     {
+                        nest.cells[plowX[j]][plowY[j]][0] = Nest.MAX_ELEVATION;
+                     }
+                     j = (j + 1) % 3;
                   }
                }
-               else if (toX > fromX)
-               {
-                  for (int i = 0; i < 3; i++)
-                  {
-                     plowX[i] = toX;
-                  }
-                  plowY[0] = (toY + 1) % height;
-                  plowY[1] = toY;
-                  plowY[2] = toY - 1;
-                  if (plowY[2] < 0)
-                  {
-                     plowY[2] += height;
-                  }
-               }
-               else if (toY < fromY)
-               {
-                  for (int i = 0; i < 3; i++)
-                  {
-                     plowY[i] = toY;
-                  }
-                  plowX[0] = (toX + 1) % width;
-                  plowX[1] = toX;
-                  plowX[2] = toX - 1;
-                  if (plowX[2] < 0)
-                  {
-                     plowX[2] += width;
-                  }
-               }
-               else if (toY > fromY)
-               {
-                  for (int i = 0; i < 3; i++)
-                  {
-                     plowY[i] = toY;
-                  }
-                  plowX[0] = (toX + 1) % width;
-                  plowX[1] = toX;
-                  plowX[2] = toX - 1;
-                  if (plowX[2] < 0)
-                  {
-                     plowX[2] += width;
-                  }
-               }
-               int n = nest.cells[fromX][fromY][0] - fishElevation;
-               nest.cells[fromX][fromY][0]        = fishElevation;
-               nest.cells[plowX[1]][plowY[1]][0] += n;
-               if (nest.cells[plowX[1]][plowY[1]][0] > Nest.MAX_ELEVATION)
-               {
-                  nest.cells[plowX[1]][plowY[1]][0] = Nest.MAX_ELEVATION;
-               }
-               //int j = random.nextInt(3);
-               //for (int i = 0; i < n; i++)
-               //{
-               //nest.cells[plowX[j]][plowY[j]][0]++;
-               //if (nest.cells[plowX[j]][plowY[j]][0] > Nest.MAX_ELEVATION)
-               //{
-               //nest.cells[plowX[j]][plowY[j]][0] = Nest.MAX_ELEVATION;
-               //}
-               //j = (j + 1) % 3;
-               //}
             }
          }
       }
