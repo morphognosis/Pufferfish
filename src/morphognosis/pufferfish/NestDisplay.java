@@ -80,7 +80,7 @@ public class NestDisplay extends JFrame
       pufferfishDashboard = new PufferfishDashboard(pufferfish, this);
 
       // Set up display.
-      setTitle("Pufferfish");
+      setTitle("Pufferfish nest building");
       addWindowListener(new WindowAdapter()
                         {
                            public void windowClosing(WindowEvent e)

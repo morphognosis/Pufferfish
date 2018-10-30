@@ -552,14 +552,14 @@ public class NestEditor extends JFrame
                      }
                   }
                   int n = nest.cells[toX][toY][Nest.ELEVATION_CELL_INDEX] - fishElevation;
-                  nest.cells[toX][toY][0] = fishElevation;
+                  nest.cells[toX][toY][Nest.ELEVATION_CELL_INDEX] = fishElevation;
                   int j = random.nextInt(3);
                   for (int i = 0; i < n; i++)
                   {
-                     nest.cells[plowX[j]][plowY[j]][0]++;
-                     if (nest.cells[plowX[j]][plowY[j]][0] > Nest.MAX_ELEVATION)
+                     nest.cells[plowX[j]][plowY[j]][Nest.ELEVATION_CELL_INDEX]++;
+                     if (nest.cells[plowX[j]][plowY[j]][Nest.ELEVATION_CELL_INDEX] > Nest.MAX_ELEVATION)
                      {
-                        nest.cells[plowX[j]][plowY[j]][0] = Nest.MAX_ELEVATION;
+                        nest.cells[plowX[j]][plowY[j]][Nest.ELEVATION_CELL_INDEX] = Nest.MAX_ELEVATION;
                      }
                      j = (j + 1) % 3;
                   }
