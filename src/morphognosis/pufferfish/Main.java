@@ -52,16 +52,22 @@ public class Main
       "  New run:\n" +
       "    java morphognosis.pufferfish.Main\n" +
       "      -steps <steps> | -display\n" +
-      "      -nestDimensions <width> <height>\n" +
+      "      Nest properties:\n" +
+      "         -nestDimensions <width> <height>\n" +
+      "        [-maxElevation <quantity> (default=" + Nest.MAX_ELEVATION + ")]\n" +
+      "        [-centerRadius <quantity> (default=" + Nest.CENTER_RADIUS + ")]\n" +
+      "        [-numSpokes <quantity> (default=" + Nest.NUM_SPOKES + ")]\n" +
+      "        [-spokeLength <quantity> (default=" + Nest.SPOKE_LENGTH + ")]\n" +
+      "        [-spokeRippleLength <quantity> (default=" + Nest.SPOKE_RIPPLE_LENGTH + ")]\n" +
+      "      Morphognosis parameters:\n" +
+      "        [-numNeighborhoods <quantity> (default=" + Morphognostic.DEFAULT_NUM_NEIGHBORHOODS + ")]\n" +
+      "        [-neighborhoodInitialDimension <quantity> (default=" + Morphognostic.DEFAULT_NEIGHBORHOOD_INITIAL_DIMENSION + ")]\n" +
+      "        [-neighborhoodDimensionStride <quantity> (default=" + Morphognostic.DEFAULT_NEIGHBORHOOD_DIMENSION_STRIDE + ")]\n" +
+      "        [-neighborhoodDimensionMultiplier <quantity> (default=" + Morphognostic.DEFAULT_NEIGHBORHOOD_DIMENSION_MULTIPLIER + ")]\n" +
+      "        [-epochIntervalStride <quantity> (default=" + Morphognostic.DEFAULT_EPOCH_INTERVAL_STRIDE + ")]\n" +
+      "        [-epochIntervalMultiplier <quantity> (default=" + Morphognostic.DEFAULT_EPOCH_INTERVAL_MULTIPLIER + ")]\n" +
+      "        [-equivalentMorphognosticDistance <distance> (default=" + Pufferfish.EQUIVALENT_MORPHOGNOSTIC_DISTANCE + ")]\n" +
       "     [-driver <metamorphDB | metamorphNN | autopilot> (pufferfish driver: default=autopilot)]\n" +
-      "     [-maxElevation <quantity> (default=" + Nest.MAX_ELEVATION + ")]\n" +
-      "     [-numNeighborhoods <quantity> (default=" + Morphognostic.DEFAULT_NUM_NEIGHBORHOODS + ")]\n" +
-      "     [-neighborhoodInitialDimension <quantity> (default=" + Morphognostic.DEFAULT_NEIGHBORHOOD_INITIAL_DIMENSION + ")]\n" +
-      "     [-neighborhoodDimensionStride <quantity> (default=" + Morphognostic.DEFAULT_NEIGHBORHOOD_DIMENSION_STRIDE + ")]\n" +
-      "     [-neighborhoodDimensionMultiplier <quantity> (default=" + Morphognostic.DEFAULT_NEIGHBORHOOD_DIMENSION_MULTIPLIER + ")]\n" +
-      "     [-epochIntervalStride <quantity> (default=" + Morphognostic.DEFAULT_EPOCH_INTERVAL_STRIDE + ")]\n" +
-      "     [-epochIntervalMultiplier <quantity> (default=" + Morphognostic.DEFAULT_EPOCH_INTERVAL_MULTIPLIER + ")]\n" +
-      "     [-equivalentMorphognosticDistance <distance> (default=" + Pufferfish.EQUIVALENT_MORPHOGNOSTIC_DISTANCE + ")]\n" +
       "     [-randomSeed <random number seed> (default=" + DEFAULT_RANDOM_SEED + ")]\n" +
       "     [-save <file name>]\n" +
       "  Resume run:\n" +
@@ -85,8 +91,11 @@ public class Main
    public NestDisplay display;
 
    // Random numbers.
-   int          randomSeed;
-   SecureRandom random;
+   public int          randomSeed;
+   public SecureRandom random;
+
+   // Response.
+   int response;
 
    // Constructor.
    public Main(int randomSeed)
@@ -94,6 +103,7 @@ public class Main
       this.randomSeed = randomSeed;
       random          = new SecureRandom();
       random.setSeed(randomSeed);
+      response = Pufferfish.WAIT;
    }
 
 
@@ -236,8 +246,7 @@ public class Main
    // Step pufferfish.
    void stepPufferfish()
    {
-      int x, y, fx, fy, width, height;
-      int response;
+      int x, y, toX, toY, width, height;
 
       float[] sensors = new float[Pufferfish.NUM_SENSORS];
 
@@ -248,8 +257,8 @@ public class Main
       pufferfish.landmarkMap[pufferfish.x][pufferfish.y] = true;
 
       // Initialize sensors.
-      fx = fy = 0;
-      for (int i = 0; i < Pufferfish.NUM_SENSORS; i++)
+      toX = toY = 0;
+      for (int i = 0, j = Pufferfish.NUM_SENSORS - 1; i < j; i++)
       {
          x = pufferfish.x;
          y = pufferfish.y;
@@ -305,8 +314,8 @@ public class Main
                if (x < 0) { x += width; }
                break;
             }
-            fx = x;
-            fy = y;
+            toX = x;
+            toY = y;
             break;
 
          case 2:
@@ -337,139 +346,11 @@ public class Main
                break;
             }
             break;
-
-         case 3:
-            switch (pufferfish.orientation)
-            {
-            case Orientation.NORTH:
-               x--;
-               if (x < 0) { x += width; }
-               break;
-
-            case Orientation.EAST:
-               y = ((y + 1) % height);
-               break;
-
-            case Orientation.SOUTH:
-               x = ((x + 1) % width);
-               break;
-
-            case Orientation.WEST:
-               y--;
-               if (y < 0) { y += height; }
-               break;
-            }
-            break;
-
-         case 4:
-            break;
-
-         case 5:
-            switch (pufferfish.orientation)
-            {
-            case Orientation.NORTH:
-               x = ((x + 1) % width);
-               break;
-
-            case Orientation.EAST:
-               y--;
-               if (y < 0) { y += height; }
-               break;
-
-            case Orientation.SOUTH:
-               x--;
-               if (x < 0) { x += width; }
-               break;
-
-            case Orientation.WEST:
-               y = ((y + 1) % height);
-               break;
-            }
-            break;
-
-         case 6:
-            switch (pufferfish.orientation)
-            {
-            case Orientation.NORTH:
-               x--;
-               if (x < 0) { x += width; }
-               y--;
-               if (y < 0) { y += height; }
-               break;
-
-            case Orientation.EAST:
-               x--;
-               if (x < 0) { x += width; }
-               y = ((y + 1) % height);
-               break;
-
-            case Orientation.SOUTH:
-               x = ((x + 1) % width);
-               y = ((y + 1) % height);
-               break;
-
-            case Orientation.WEST:
-               x = ((x + 1) % width);
-               y--;
-               if (y < 0) { y += height; }
-               break;
-            }
-            break;
-
-         case 7:
-            switch (pufferfish.orientation)
-            {
-            case Orientation.NORTH:
-               y--;
-               if (y < 0) { y += height; }
-               break;
-
-            case Orientation.EAST:
-               x--;
-               if (x < 0) { x += width; }
-               break;
-
-            case Orientation.SOUTH:
-               y = ((y + 1) % height);
-               break;
-
-            case Orientation.WEST:
-               x = ((x + 1) % width);
-               break;
-            }
-            break;
-
-         case 8:
-            switch (pufferfish.orientation)
-            {
-            case Orientation.NORTH:
-               x = ((x + 1) % width);
-               y--;
-               if (y < 0) { y += height; }
-               break;
-
-            case Orientation.EAST:
-               x--;
-               if (x < 0) { x += width; }
-               y--;
-               if (y < 0) { y += height; }
-               break;
-
-            case Orientation.SOUTH:
-               x--;
-               if (x < 0) { x += width; }
-               y = ((y + 1) % height);
-               break;
-
-            case Orientation.WEST:
-               x = ((x + 1) % width);
-               y = ((y + 1) % height);
-               break;
-            }
-            break;
          }
-         sensors[i] = (float)nest.cells[x][y][Nest.ELEVATION_CELL_INDEX];
+         //sensors[i] = (float)nest.cells[x][y][Nest.ELEVATION_CELL_INDEX];
+         sensors[i] = 0.0f;
       }
+      sensors[Pufferfish.PREVIOUS_RESPONSE_INDEX] = (float)response;
 
       // Cycle pufferfish.
       response = pufferfish.cycle(sensors);
@@ -478,8 +359,8 @@ public class Main
       switch (response)
       {
       case Pufferfish.FORWARD:
-         pufferfish.x = fx;
-         pufferfish.y = fy;
+         pufferfish.x = toX;
+         pufferfish.y = toY;
          break;
 
       case Pufferfish.TURN_LEFT:
@@ -495,19 +376,16 @@ public class Main
                                   Orientation.NUM_ORIENTATIONS;
          break;
 
+      case Pufferfish.SMOOTH:
+         nest.smooth(pufferfish.x, pufferfish.y, toX, toY);
+         break;
+
       case Pufferfish.RAISE:
-         if (nest.cells[pufferfish.x][pufferfish.y][Nest.ELEVATION_CELL_INDEX] <
-             Nest.MAX_ELEVATION)
-         {
-            nest.cells[pufferfish.x][pufferfish.y][Nest.ELEVATION_CELL_INDEX]++;
-         }
+         nest.cells[pufferfish.x][pufferfish.y][Nest.ELEVATION_CELL_INDEX] = Nest.MAX_ELEVATION;
          break;
 
       case Pufferfish.LOWER:
-         if (nest.cells[pufferfish.x][pufferfish.y][Nest.ELEVATION_CELL_INDEX] > 0)
-         {
-            nest.cells[pufferfish.x][pufferfish.y][Nest.ELEVATION_CELL_INDEX]--;
-         }
+         nest.cells[pufferfish.x][pufferfish.y][Nest.ELEVATION_CELL_INDEX] = 0;
          break;
       }
    }
@@ -518,7 +396,7 @@ public class Main
    {
       if (display == null)
       {
-         display = new NestDisplay(nest, pufferfish);
+         display = new NestDisplay(nest, pufferfish, randomSeed);
       }
    }
 
@@ -570,7 +448,6 @@ public class Main
       int     width             = -1;
       int     height            = -1;
       int     driver            = Pufferfish.DRIVER_TYPE.AUTOPILOT.getValue();
-      int     maxElevation      = -1;
       int     randomSeed        = DEFAULT_RANDOM_SEED;
       String  loadfile          = null;
       String  savefile          = null;
@@ -714,6 +591,116 @@ public class Main
             if (Nest.MAX_ELEVATION < 0)
             {
                System.err.println("Invalid maxElevation option");
+               System.err.println(Usage);
+               System.exit(1);
+            }
+            continue;
+         }
+         if (args[i].equals("-centerRadius"))
+         {
+            i++;
+            if (i >= args.length)
+            {
+               System.err.println("Invalid centerRadius option");
+               System.err.println(Usage);
+               System.exit(1);
+            }
+            try
+            {
+               Nest.CENTER_RADIUS = Integer.parseInt(args[i]);
+            }
+            catch (NumberFormatException e) {
+               System.err.println("Invalid centerRadius option");
+               System.err.println(Usage);
+               System.exit(1);
+            }
+            if (Nest.CENTER_RADIUS <= 0)
+            {
+               System.err.println("Invalid centerRadius option");
+               System.err.println(Usage);
+               System.exit(1);
+            }
+            continue;
+         }
+         if (args[i].equals("-numSpokes"))
+         {
+            i++;
+            if (i >= args.length)
+            {
+               System.err.println("Invalid numSpokes option");
+               System.err.println(Usage);
+               System.exit(1);
+            }
+            try
+            {
+               Nest.NUM_SPOKES = Integer.parseInt(args[i]);
+            }
+            catch (NumberFormatException e) {
+               System.err.println("Invalid numSpokes option");
+               System.err.println(Usage);
+               System.exit(1);
+            }
+            if (Nest.NUM_SPOKES < 0)
+            {
+               System.err.println("Invalid numSpokes option");
+               System.err.println(Usage);
+               System.exit(1);
+            }
+            continue;
+         }
+         if (args[i].equals("-spokeLength"))
+         {
+            i++;
+            if (i >= args.length)
+            {
+               System.err.println("Invalid spokeLength option");
+               System.err.println(Usage);
+               System.exit(1);
+            }
+            try
+            {
+               Nest.SPOKE_LENGTH = Integer.parseInt(args[i]);
+            }
+            catch (NumberFormatException e) {
+               System.err.println("Invalid spokeLength option");
+               System.err.println(Usage);
+               System.exit(1);
+            }
+            if (Nest.SPOKE_LENGTH < 0)
+            {
+               System.err.println("Invalid spokeLength option");
+               System.err.println(Usage);
+               System.exit(1);
+            }
+            continue;
+         }
+         if (args[i].equals("-spokeRippleLength"))
+         {
+            i++;
+            if (i >= args.length)
+            {
+               System.err.println("Invalid spokeRippleLength option");
+               System.err.println(Usage);
+               System.exit(1);
+            }
+            try
+            {
+               Nest.SPOKE_RIPPLE_LENGTH = Integer.parseInt(args[i]);
+            }
+            catch (NumberFormatException e) {
+               System.err.println("Invalid spokeRippleLength option");
+               System.err.println(Usage);
+               System.exit(1);
+            }
+            if (Nest.SPOKE_RIPPLE_LENGTH < 0)
+            {
+               System.err.println("Invalid spokeRippleLength option");
+               System.err.println(Usage);
+               System.exit(1);
+            }
+            if ((Nest.SPOKE_RIPPLE_LENGTH % 2) == 1)
+            {
+               System.err.println("Invalid spokeRippleLength option: must be even");
                System.err.println(Usage);
                System.exit(1);
             }
@@ -999,7 +986,7 @@ public class Main
       }
       else
       {
-         if ((maxElevation != -1) || (width != -1) || (height != -1) || gotParm)
+         if ((width != -1) || (height != -1) || gotParm)
          {
             System.err.println(Usage);
             System.exit(1);

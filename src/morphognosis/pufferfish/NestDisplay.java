@@ -66,14 +66,15 @@ public class NestDisplay extends JFrame
    int          randomSeed;
 
    // Constructors.
-   public NestDisplay(Nest nest, Pufferfish pufferfish)
+   public NestDisplay(Nest nest, Pufferfish pufferfish, int randomSeed)
    {
       this.nest       = nest;
       this.pufferfish = pufferfish;
 
       // Random numbers.
-      randomSeed = pufferfish.randomSeed;
-      random     = new SecureRandom();
+      randomSeed      = pufferfish.randomSeed;
+      random          = new SecureRandom();
+      this.randomSeed = randomSeed;
       random.setSeed(randomSeed);
 
       // Create pufferfish dashboard.

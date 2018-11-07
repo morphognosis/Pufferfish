@@ -57,19 +57,24 @@ public class Pufferfish
    public static final boolean saveMetamorphNN        = false;
    public static final boolean evaluateMetamorphNN    = true;
 
-   // Input/output.
-   public static final int NUM_SENSORS = 9;
+   // Sensors.
+   public static final int LEFT_CELL_INDEX         = 0;
+   public static final int CENTER_CELL_INDEX       = 1;
+   public static final int RIGHT_CELL_INDEX        = 2;
+   public static final int PREVIOUS_RESPONSE_INDEX = 3;
+   public static final int NUM_SENSORS             = 4;
    float[] sensors;
-   int response;
 
-   // Response types.
+   // Response.
    public static final int WAIT          = 0;
    public static final int FORWARD       = 1;
    public static final int TURN_LEFT     = 2;
    public static final int TURN_RIGHT    = 3;
-   public static final int RAISE         = 4;
-   public static final int LOWER         = 5;
-   public static final int NUM_RESPONSES = 6;
+   public static final int SMOOTH        = 4;
+   public static final int RAISE         = 5;
+   public static final int LOWER         = 6;
+   public static final int NUM_RESPONSES = 7;
+   int response;
 
    // Navigation.
    public boolean[][] landmarkMap;
@@ -119,9 +124,26 @@ public class Pufferfish
    }
 
    // Autopilot response.
-   int radius;
-   int ring;
-   int step;
+   int     state;
+   int     radius;
+   int     ring;
+   int     step;
+   boolean smoothStep = true;
+   int     spoke;
+   int     spokeIndex;
+   int     spokeDir;
+   class SpokePoint
+   {
+      int     x, y;
+      boolean raise;
+      boolean lower;
+      SpokePoint(int x, int y)
+      {
+         this.x = x;
+         this.y = y;
+      }
+   };
+   ArrayList<SpokePoint> spokePath;
 
    // Constructors.
    public Pufferfish(Nest nest, int randomSeed)
@@ -132,10 +154,11 @@ public class Pufferfish
       random.setSeed(randomSeed);
       init();
       int [] numEventTypes = new int[NUM_SENSORS];
-      for (int i = 0; i < NUM_SENSORS; i++)
+      for (int i = 0, j = NUM_SENSORS - 1; i < j; i++)
       {
          numEventTypes[i] = Nest.MAX_ELEVATION + 1;
       }
+      numEventTypes[NUM_SENSORS - 1] = Pufferfish.NUM_RESPONSES;
       morphognostic = new Morphognostic(Orientation.NORTH, numEventTypes);
       Morphognostic.Neighborhood n = morphognostic.neighborhoods.get(morphognostic.NUM_NEIGHBORHOODS - 1);
       maxEventAge = n.epoch + n.duration - 1;
@@ -158,10 +181,11 @@ public class Pufferfish
       random.setSeed(randomSeed);
       init();
       int [] numEventTypes = new int[NUM_SENSORS];
-      for (int i = 0; i < NUM_SENSORS; i++)
+      for (int i = 0, j = NUM_SENSORS - 1; i < j; i++)
       {
          numEventTypes[i] = Nest.MAX_ELEVATION + 1;
       }
+      numEventTypes[NUM_SENSORS - 1] = Pufferfish.NUM_RESPONSES;
       morphognostic = new Morphognostic(Orientation.NORTH, numEventTypes,
                                         NUM_NEIGHBORHOODS,
                                         NEIGHBORHOOD_INITIAL_DIMENSION,
@@ -480,7 +504,8 @@ public class Pufferfish
       int w = nest.size.width;
       int h = nest.size.height;
 
-      radius = x;
+      state  = 0;
+      radius = Nest.CENTER_RADIUS - 1;
       int r = Math.abs(w - x - 1);
       if (r < radius)
       {
@@ -497,89 +522,303 @@ public class Pufferfish
       }
       ring        = 0;
       step        = 0;
+      smoothStep  = true;
       orientation = Orientation.WEST;
+      spoke       = 0;
+      spokeIndex  = 0;
+      spokeDir    = 0;
+      spokePath   = null;
    }
 
 
    // Autopilot response.
    void autoPilotResponse()
    {
-      if (nest.cells[x][y][Nest.ELEVATION_CELL_INDEX] <
-          nest.restoreCells[x][y][Nest.ELEVATION_CELL_INDEX])
-      {
-         response = RAISE;
-      }
-      else if (nest.cells[x][y][Nest.ELEVATION_CELL_INDEX] >
-               nest.restoreCells[x][y][Nest.ELEVATION_CELL_INDEX])
-      {
-         response = LOWER;
-      }
-      else
+      response = WAIT;
+      if (state == 0)
       {
          int steps = ring * 2;
-         switch (orientation)
+         if (smoothStep)
          {
-         case Orientation.WEST:
-            if (step == (steps + 1))
+            smoothStep = false;
+            if (step <= steps)
             {
-               if (ring < radius)
+               response = SMOOTH;
+            }
+            else
+            {
+               response = WAIT;
+            }
+         }
+         else
+         {
+            smoothStep = true;
+            if (radius == 0)
+            {
+               switch (orientation)
                {
+               case Orientation.WEST:
                   response = TURN_LEFT;
-                  ring++;
-                  step = 1;
-               }
-               else
-               {
-                  response = WAIT;
+                  break;
+
+               case Orientation.SOUTH:
+                  response = TURN_LEFT;
+                  break;
+
+               case Orientation.EAST:
+                  response = TURN_LEFT;
+                  break;
+
+               case Orientation.NORTH:
+                  state    = 1;
+                  response = TURN_LEFT;
+                  break;
                }
             }
             else
             {
+               switch (orientation)
+               {
+               case Orientation.WEST:
+                  if (step == (steps + 1))
+                  {
+                     if (ring < radius)
+                     {
+                        response = TURN_LEFT;
+                        ring++;
+                        step = 1;
+                     }
+                  }
+                  else
+                  {
+                     response = FORWARD;
+                     step++;
+                     if ((ring == radius) && (step > steps))
+                     {
+                        state = 1;
+                        genSpokePath();
+                     }
+                  }
+                  break;
+
+               case Orientation.SOUTH:
+                  if (step == steps)
+                  {
+                     response = TURN_LEFT;
+                     step     = 0;
+                  }
+                  else
+                  {
+                     response = FORWARD;
+                     step++;
+                  }
+                  break;
+
+               case Orientation.EAST:
+                  if (step == steps)
+                  {
+                     response = TURN_LEFT;
+                     step     = 0;
+                  }
+                  else
+                  {
+                     response = FORWARD;
+                     step++;
+                  }
+                  break;
+
+               case Orientation.NORTH:
+                  if (step == steps)
+                  {
+                     response = TURN_LEFT;
+                     step     = 0;
+                  }
+                  else
+                  {
+                     response = FORWARD;
+                     step++;
+                  }
+                  break;
+               }
+            }
+         }
+      }
+      else
+      {
+         if (spoke == Nest.NUM_SPOKES) { return; }
+         int n = radius + Nest.SPOKE_LENGTH + 1;
+         if (n == 1) { return; }
+         SpokePoint p = spokePath.get(spokeIndex);
+         if ((x == p.x) && (y == p.y))
+         {
+            if (p.raise)
+            {
+               response = RAISE;
+               p.raise  = false;
+               return;
+            }
+            else if (p.lower)
+            {
+               response = LOWER;
+               p.lower  = false;
+               return;
+            }
+            else
+            {
+               if (spokeDir == 0)
+               {
+                  if (spokeIndex == (spokePath.size() - 1))
+                  {
+                     spokeIndex--;
+                     spokeDir = 1;
+                  }
+                  else
+                  {
+                     spokeIndex++;
+                  }
+               }
+               else
+               {
+                  if (spokeIndex > 0)
+                  {
+                     spokeIndex--;
+                  }
+                  else
+                  {
+                     spoke++;
+                     if (spoke == Nest.NUM_SPOKES) { return; }
+                     spokeDir   = 0;
+                     spokeIndex = 1;
+                     genSpokePath();
+                  }
+               }
+            }
+         }
+         p = spokePath.get(spokeIndex);
+         switch (orientation)
+         {
+         case Orientation.WEST:
+            if (p.x < x)
+            {
                response = FORWARD;
-               step++;
+            }
+            else if (p.x > x)
+            {
+               response = TURN_LEFT;
+            }
+            else if (p.y > y)
+            {
+               response = TURN_RIGHT;
+            }
+            else if (p.y < y)
+            {
+               response = TURN_LEFT;
             }
             break;
 
          case Orientation.SOUTH:
-            if (step == steps)
-            {
-               response = TURN_LEFT;
-               step     = 0;
-            }
-            else
+            if (p.y < y)
             {
                response = FORWARD;
-               step++;
+            }
+            else if (p.y > y)
+            {
+               response = TURN_LEFT;
+            }
+            else if (p.x > x)
+            {
+               response = TURN_LEFT;
+            }
+            else if (p.x < x)
+            {
+               response = TURN_RIGHT;
             }
             break;
 
          case Orientation.EAST:
-            if (step == steps)
-            {
-               response = TURN_LEFT;
-               step     = 0;
-            }
-            else
+            if (p.x > x)
             {
                response = FORWARD;
-               step++;
+            }
+            else if (p.x < x)
+            {
+               response = TURN_LEFT;
+            }
+            else if (p.y > y)
+            {
+               response = TURN_LEFT;
+            }
+            else if (p.y < y)
+            {
+               response = TURN_RIGHT;
             }
             break;
 
          case Orientation.NORTH:
-            if (step == steps)
-            {
-               response = TURN_LEFT;
-               step     = 0;
-            }
-            else
+            if (p.y > y)
             {
                response = FORWARD;
-               step++;
+            }
+            else if (p.y < y)
+            {
+               response = TURN_LEFT;
+            }
+            else if (p.x > x)
+            {
+               response = TURN_RIGHT;
+            }
+            else if (p.x < x)
+            {
+               response = TURN_LEFT;
             }
             break;
          }
       }
+   }
+
+
+   // Generate spoke path.
+   void genSpokePath()
+   {
+      spokePath = new ArrayList<SpokePoint>();
+      int   n     = radius + Nest.SPOKE_LENGTH + 1;
+      float angle = (360.0f / (float)Nest.NUM_SPOKES) * (float)spoke;
+      float vx    = (float)Math.cos(Math.toRadians(angle + 90.0f));
+      float vy    = (float)Math.sin(Math.toRadians(angle + 90.0f));
+      int   cx    = nest.size.width / 2;
+      int   cy    = nest.size.height / 2;
+      for (int i = 0; i < n; i++)
+      {
+         int        px = (int)(vx * (float)i) + cx;
+         int        py = (int)(vy * (float)i) + cy;
+         SpokePoint p  = new SpokePoint(px, py);
+         if (spokePath.size() > 0)
+         {
+            SpokePoint p2 = spokePath.get(spokePath.size() - 1);
+            if ((p2.x == p.x) && (p2.y == p.y)) { continue; }
+         }
+         spokePath.add(p);
+      }
+      int a = Nest.SPOKE_RIPPLE_LENGTH / 2;
+      int b = spokePath.size() - 1;
+      for (int i = 0; i < 4 && a > 0 && b >= 0; i++)
+      {
+         for (int j = 0; j < a && b >= 0; j++)
+         {
+            SpokePoint p = spokePath.get(b);
+            b--;
+            if ((i % 2) == 0)
+            {
+               p.raise = true;
+            }
+            else
+            {
+               p.lower = true;
+            }
+         }
+      }
+      spokeIndex = 0;
+      spokeDir   = 0;
    }
 
 

@@ -168,6 +168,10 @@ public class PufferfishDashboard extends JFrame
       {
          setResponse("turn right");
       }
+      else if (pufferfish.response == Pufferfish.SMOOTH)
+      {
+         setResponse("smooth surface");
+      }
       else if (pufferfish.response == Pufferfish.RAISE)
       {
          setResponse("raise surface");
@@ -273,6 +277,7 @@ public class PufferfishDashboard extends JFrame
       JButton  forwardButton;
       JButton  turnLeftButton;
       JButton  turnRightButton;
+      JButton  smoothSurfaceButton;
       JButton  raiseSurfaceButton;
       JButton  lowerSurfaceButton;
       Checkbox trainNNcheck;
@@ -306,6 +311,9 @@ public class PufferfishDashboard extends JFrame
          turnRightButton = new JButton("Turn right");
          turnRightButton.addActionListener(this);
          responsePanel.add(turnRightButton);
+         smoothSurfaceButton = new JButton("Smooth");
+         smoothSurfaceButton.addActionListener(this);
+         responsePanel.add(smoothSurfaceButton);
          raiseSurfaceButton = new JButton("Raise");
          raiseSurfaceButton.addActionListener(this);
          responsePanel.add(raiseSurfaceButton);
@@ -371,6 +379,12 @@ public class PufferfishDashboard extends JFrame
          if ((JButton)evt.getSource() == turnRightButton)
          {
             pufferfish.driverResponse = Pufferfish.TURN_RIGHT;
+            return;
+         }
+
+         if ((JButton)evt.getSource() == smoothSurfaceButton)
+         {
+            pufferfish.driverResponse = Pufferfish.SMOOTH;
             return;
          }
 

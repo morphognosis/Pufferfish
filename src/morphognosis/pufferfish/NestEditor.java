@@ -71,7 +71,7 @@ public class NestEditor extends JFrame
    int          randomSeed;
 
    // Constructors.
-   public NestEditor(Nest nest)
+   public NestEditor(Nest nest, int randomSeed)
    {
       // Save nest.
       this.nest = nest;
@@ -80,7 +80,8 @@ public class NestEditor extends JFrame
       pufferfish = new Pufferfish(nest, randomSeed);
 
       // Random numbers.
-      random = new SecureRandom();
+      random          = new SecureRandom();
+      this.randomSeed = randomSeed;
       random.setSeed(randomSeed);
 
       // Set up display.
@@ -175,9 +176,6 @@ public class NestEditor extends JFrame
       // Selected cell.
       int selectedX, selectedY;
 
-      // Lock.
-      private Object lock;
-
       // Constructor.
       public NestDisplay(Dimension canvasSize)
       {
@@ -201,9 +199,6 @@ public class NestEditor extends JFrame
 
          // Initialize selected cell.
          selectedX = selectedY = -1;
-
-         // Get synchronization lock.
-         lock = new Object();
       }
 
 
@@ -212,7 +207,7 @@ public class NestEditor extends JFrame
       {
          int x, y, x2, y2;
 
-         synchronized (lock)
+         synchronized (nest.lock)
          {
             if (graphics == null)
             {
@@ -377,7 +372,7 @@ public class NestEditor extends JFrame
             {
                if (selectedX != -1)
                {
-                  plow(selectedX, selectedY, x, y);
+                  nest.plow(selectedX, selectedY, x, y);
                }
                selectedX = x;
                selectedY = y;
@@ -407,13 +402,13 @@ public class NestEditor extends JFrame
                {
                case Orientation.NORTH:
                   y = (pufferfish.y + 1) % height;
-                  plow(pufferfish.x, pufferfish.y, pufferfish.x, y);
+                  nest.plow(pufferfish.x, pufferfish.y, pufferfish.x, y);
                   pufferfish.y = y;
                   break;
 
                case Orientation.EAST:
                   x = (pufferfish.x + 1) % width;
-                  plow(pufferfish.x, pufferfish.y, x, pufferfish.y);
+                  nest.plow(pufferfish.x, pufferfish.y, x, pufferfish.y);
                   pufferfish.x = x;
                   break;
 
@@ -423,7 +418,7 @@ public class NestEditor extends JFrame
                   {
                      y += height;
                   }
-                  plow(pufferfish.x, pufferfish.y, pufferfish.x, y);
+                  nest.plow(pufferfish.x, pufferfish.y, pufferfish.x, y);
                   pufferfish.y = y;
                   break;
 
@@ -433,7 +428,7 @@ public class NestEditor extends JFrame
                   {
                      x += width;
                   }
-                  plow(pufferfish.x, pufferfish.y, x, pufferfish.y);
+                  nest.plow(pufferfish.x, pufferfish.y, x, pufferfish.y);
                   pufferfish.x = x;
                   break;
                }
@@ -476,95 +471,6 @@ public class NestEditor extends JFrame
          else if (fishElevation > Nest.MAX_ELEVATION)
          {
             fishElevation = Nest.MAX_ELEVATION;
-         }
-      }
-
-
-      // Plow the surface.
-      void plow(int fromX, int fromY, int toX, int toY)
-      {
-         synchronized (lock)
-         {
-            if (fishElevation < nest.cells[toX][toY][0])
-            {
-               if ((fromX != toX) || (fromY != toY))
-               {
-                  int[] plowX = new int[3];
-                  int[] plowY = new int[3];
-                  if ((toX < fromX) || ((toX == (width - 1)) && (fromX == 0)))
-                  {
-                     plowX[0] = toX;
-                     plowX[1] = toX - 1;
-                     if (plowX[1] < 0)
-                     {
-                        plowX[1] += width;
-                     }
-                     plowX[2] = toX;
-                     plowY[0] = (toY + 1) % height;
-                     plowY[1] = toY;
-                     plowY[2] = toY - 1;
-                     if (plowY[2] < 0)
-                     {
-                        plowY[2] += height;
-                     }
-                  }
-                  else if ((toX > fromX) || ((toX == 0) && (fromX == (width - 1))))
-                  {
-                     plowX[0] = toX;
-                     plowX[1] = (toX + 1) % width;
-                     plowX[2] = toX;
-                     plowY[0] = (toY + 1) % height;
-                     plowY[1] = toY;
-                     plowY[2] = toY - 1;
-                     if (plowY[2] < 0)
-                     {
-                        plowY[2] += height;
-                     }
-                  }
-                  else if ((toY < fromY) || ((toY == (height - 1)) && (fromY == 0)))
-                  {
-                     plowY[0] = toY;
-                     plowY[1] = toY - 1;
-                     if (plowY[1] < 0)
-                     {
-                        plowY[1] += height;
-                     }
-                     plowY[2] = toY;
-                     plowX[0] = (toX + 1) % width;
-                     plowX[1] = toX;
-                     plowX[2] = toX - 1;
-                     if (plowX[2] < 0)
-                     {
-                        plowX[2] += width;
-                     }
-                  }
-                  else if ((toY > fromY) || ((toY == 0) && (fromY == (height - 1))))
-                  {
-                     plowY[0] = toY;
-                     plowY[1] = (toY + 1) % height;
-                     plowY[2] = toY;
-                     plowX[0] = (toX + 1) % width;
-                     plowX[1] = toX;
-                     plowX[2] = toX - 1;
-                     if (plowX[2] < 0)
-                     {
-                        plowX[2] += width;
-                     }
-                  }
-                  int n = nest.cells[toX][toY][Nest.ELEVATION_CELL_INDEX] - fishElevation;
-                  nest.cells[toX][toY][Nest.ELEVATION_CELL_INDEX] = fishElevation;
-                  int j = random.nextInt(3);
-                  for (int i = 0; i < n; i++)
-                  {
-                     nest.cells[plowX[j]][plowY[j]][Nest.ELEVATION_CELL_INDEX]++;
-                     if (nest.cells[plowX[j]][plowY[j]][Nest.ELEVATION_CELL_INDEX] > Nest.MAX_ELEVATION)
-                     {
-                        nest.cells[plowX[j]][plowY[j]][Nest.ELEVATION_CELL_INDEX] = Nest.MAX_ELEVATION;
-                     }
-                     j = (j + 1) % 3;
-                  }
-               }
-            }
          }
       }
    }
@@ -770,7 +676,7 @@ public class NestEditor extends JFrame
       }
 
       // Create editor.
-      NestEditor editor = new NestEditor(nest);
+      NestEditor editor = new NestEditor(nest, randomSeed);
 
       // Run editor.
       editor.run();

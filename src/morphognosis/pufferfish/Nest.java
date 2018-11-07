@@ -11,6 +11,7 @@ import morphognosis.Utility;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Image;
+import java.awt.Point;
 import java.awt.image.BufferedImage;
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
@@ -22,17 +23,30 @@ import java.io.IOException;
 
 public class Nest
 {
+   // Properties.
+   public static int MAX_ELEVATION       = 4;
+   public static int CENTER_RADIUS       = 2;
+   public static int NUM_SPOKES          = 8;
+   public static int SPOKE_LENGTH        = 4;
+   public static int SPOKE_RIPPLE_LENGTH = 2;
+
    // Cells.
    // See SectorDisplay.EMPTY_CELL_VALUE.
    public static final int CELL_DIMENSIONS      = 1;
    public static final int ELEVATION_CELL_INDEX = 0;
-   public static int       MAX_ELEVATION        = 10;
    public Dimension        size;
    public int[][][]        cells;
    public int[][][]        restoreCells;
 
+   // Random numbers.
+   public SecureRandom random;
+   public int          randomSeed;
+
+   // Lock.
+   public Object lock;
+
    // Nest image file.
-   String nestImageFile;
+   public String nestImageFile;
 
    // Constructors.
    public Nest(Dimension size, int randomSeed)
@@ -40,8 +54,8 @@ public class Nest
       int x, y, width, height;
 
       // Random numbers.
-      SecureRandom random = new SecureRandom();
-
+      random          = new SecureRandom();
+      this.randomSeed = randomSeed;
       random.setSeed(randomSeed);
 
       // Create cells.
@@ -56,18 +70,24 @@ public class Nest
          {
             for (int d = 0; d < CELL_DIMENSIONS; d++)
             {
-               cells[x][y][d] = restoreCells[x][y][d] = random.nextInt(MAX_ELEVATION + 1);
+               cells[x][y][d] = restoreCells[x][y][d] = random.nextInt(3) + 1;
             }
          }
       }
+      lock = new Object();
    }
 
 
-   public Nest(Dimension size, String nestImageFile)
+   public Nest(Dimension size, int randomSeed, String nestImageFile)
    {
       int x, y, width, height;
 
       this.nestImageFile = nestImageFile;
+
+      // Random numbers.
+      random          = new SecureRandom();
+      this.randomSeed = randomSeed;
+      random.setSeed(randomSeed);
 
       // Create cells.
       this.size    = size;
@@ -90,12 +110,14 @@ public class Nest
       // Load elevations from nest image.
       loadNestImageElevations();
       checkpoint();
+      lock = new Object();
    }
 
 
    public Nest()
    {
       size = new Dimension();
+      lock = new Object();
    }
 
 
@@ -213,6 +235,10 @@ public class Nest
       Utility.saveInt(writer, size.width);
       Utility.saveInt(writer, size.height);
       Utility.saveInt(writer, MAX_ELEVATION);
+      Utility.saveInt(writer, CENTER_RADIUS);
+      Utility.saveInt(writer, NUM_SPOKES);
+      Utility.saveInt(writer, SPOKE_LENGTH);
+      Utility.saveInt(writer, SPOKE_RIPPLE_LENGTH);
       for (x = 0; x < size.width; x++)
       {
          for (y = 0; y < size.height; y++)
@@ -261,14 +287,17 @@ public class Nest
 
       DataInputStream reader = new DataInputStream(input);
 
-      w             = Utility.loadInt(reader);
-      h             = Utility.loadInt(reader);
-      MAX_ELEVATION = Utility.loadInt(reader);
-
-      size.width   = w;
-      size.height  = h;
-      cells        = new int[size.width][size.height][2];
-      restoreCells = new int[size.width][size.height][2];
+      w                   = Utility.loadInt(reader);
+      h                   = Utility.loadInt(reader);
+      MAX_ELEVATION       = Utility.loadInt(reader);
+      CENTER_RADIUS       = Utility.loadInt(reader);
+      NUM_SPOKES          = Utility.loadInt(reader);
+      SPOKE_LENGTH        = Utility.loadInt(reader);
+      SPOKE_RIPPLE_LENGTH = Utility.loadInt(reader);
+      size.width          = w;
+      size.height         = h;
+      cells               = new int[size.width][size.height][2];
+      restoreCells        = new int[size.width][size.height][2];
       clear();
 
       for (x = 0; x < size.width; x++)
@@ -346,5 +375,139 @@ public class Nest
             }
          }
       }
+   }
+
+
+   // Smooth the left, center, and right cell elevations.
+   public void smooth(int fromX, int fromY, int centerX, int centerY)
+   {
+      synchronized (lock)
+      {
+         if ((fromX != centerX) || (fromY != centerY))
+         {
+            Point[] forwardCoords = getForwardCoords(fromX, fromY, centerX, centerY);
+            int smoothElevation = Nest.MAX_ELEVATION / 2;
+            cells[fromX][fromY][ELEVATION_CELL_INDEX]     = smoothElevation;
+            cells[centerX][centerY][ELEVATION_CELL_INDEX] = smoothElevation;
+            cells[forwardCoords[0].x][forwardCoords[0].y][ELEVATION_CELL_INDEX] = smoothElevation;
+            cells[forwardCoords[2].x][forwardCoords[2].y][ELEVATION_CELL_INDEX] = smoothElevation;
+         }
+      }
+   }
+
+
+   // Plow the surface elevations.
+   public void plow(int fromX, int fromY, int toX, int toY)
+   {
+      synchronized (lock)
+      {
+         int fishElevation = cells[fromX][fromY][ELEVATION_CELL_INDEX];
+         if (fishElevation < cells[toX][toY][ELEVATION_CELL_INDEX])
+         {
+            if ((fromX != toX) || (fromY != toY))
+            {
+               Point[] plow = getForwardCoords(fromX, fromY, toX, toY);
+               int n = cells[toX][toY][ELEVATION_CELL_INDEX] - fishElevation;
+               cells[toX][toY][ELEVATION_CELL_INDEX] = fishElevation;
+               int j = random.nextInt(3);
+               for (int i = 0; i < n; i++)
+               {
+                  cells[plow[j].x][plow[j].y][ELEVATION_CELL_INDEX]++;
+                  if (cells[plow[j].x][plow[j].y][ELEVATION_CELL_INDEX] > Nest.MAX_ELEVATION)
+                  {
+                     cells[plow[j].x][plow[j].y][ELEVATION_CELL_INDEX] = Nest.MAX_ELEVATION;
+                  }
+                  j = (j + 1) % 3;
+               }
+            }
+         }
+      }
+   }
+
+
+   // Get forward cell coordinates.
+   public Point[] getForwardCoords(int fromX, int fromY, int toX, int toY)
+   {
+      int[] coordX = new int[3];
+      int[] coordY = new int[3];
+      if ((toX < fromX) || ((toX == (size.width - 1)) && (fromX == 0)))
+      {
+         coordX[0] = toX;
+         coordX[1] = toX - 1;
+         if (coordX[1] < 0)
+         {
+            coordX[1] += size.width;
+         }
+         coordX[2] = toX;
+         coordY[0] = (toY + 1) % size.height;
+         coordY[1] = toY;
+         coordY[2] = toY - 1;
+         if (coordY[2] < 0)
+         {
+            coordY[2] += size.height;
+         }
+      }
+      else if ((toX > fromX) || ((toX == 0) && (fromX == (size.width - 1))))
+      {
+         coordX[0] = toX;
+         coordX[1] = (toX + 1) % size.width;
+         coordX[2] = toX;
+         coordY[0] = (toY + 1) % size.height;
+         coordY[1] = toY;
+         coordY[2] = toY - 1;
+         if (coordY[2] < 0)
+         {
+            coordY[2] += size.height;
+         }
+      }
+      else if ((toY < fromY) || ((toY == (size.height - 1)) && (fromY == 0)))
+      {
+         coordY[0] = toY;
+         coordY[1] = toY - 1;
+         if (coordY[1] < 0)
+         {
+            coordY[1] += size.height;
+         }
+         coordY[2] = toY;
+         coordX[0] = (toX + 1) % size.width;
+         coordX[1] = toX;
+         coordX[2] = toX - 1;
+         if (coordX[2] < 0)
+         {
+            coordX[2] += size.width;
+         }
+      }
+      else if ((toY > fromY) || ((toY == 0) && (fromY == (size.height - 1))))
+      {
+         coordY[0] = toY;
+         coordY[1] = (toY + 1) % size.height;
+         coordY[2] = toY;
+         coordX[0] = (toX + 1) % size.width;
+         coordX[1] = toX;
+         coordX[2] = toX - 1;
+         if (coordX[2] < 0)
+         {
+            coordX[2] += size.width;
+         }
+      }
+      Point[] result = new Point[3];
+      for (int i = 0; i < 3; i++)
+      {
+         result[i] = new Point(coordX[i], coordY[i]);
+      }
+      return(result);
+   }
+
+
+   // Print properties.
+   public void printProperties()
+   {
+      System.out.println("Nest properties:");
+      System.out.println("Dimensions = " + size.width + "," + size.height);
+      System.out.println("MAX_ELEVATION = " + MAX_ELEVATION);
+      System.out.println("CENTER_RADIUS = " + CENTER_RADIUS);
+      System.out.println("NUM_SPOKES = " + NUM_SPOKES);
+      System.out.println("SPOKE_LENGTH = " + SPOKE_LENGTH);
+      System.out.println("SPOKE_RIPPLE_LENGTH = " + SPOKE_RIPPLE_LENGTH);
    }
 }
