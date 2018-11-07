@@ -241,7 +241,7 @@ public class NestDisplay extends JFrame
       {
          int x, y, x2, y2, cx, cy;
 
-         int[] vx, vy;
+         int[] sx, sy, px, py;
 
          if (graphics == null)
          {
@@ -297,118 +297,209 @@ public class NestDisplay extends JFrame
          }
          imageGraphics.setColor(Color.black);
 
-         // Draw pufferfish location.
+         // Draw pufferfish sensor locations.
          imageGraphics.setColor(PUFFERFISH_COLOR);
-         vx = new int[4];
-         vy = new int[4];
+         sx = new int[4];
+         sy = new int[4];
          cx = pufferfish.x;
          cy = pufferfish.y;
-         for (int i = 0; i < 9; i++)
+         switch (pufferfish.orientation)
          {
-            x = cx;
-            y = cy;
-            switch (i)
+         case Orientation.NORTH:
+            for (int i = 0; i < 3; i++)
             {
-            case 0:
-               x--;
-               if (x < 0) { x += width; }
-               y = ((y + 1) % height);
-               break;
+               x = cx;
+               y = cy;
+               switch (i)
+               {
+               case 0:
+                  x--;
+                  if (x < 0) { x += width; }
+                  y = ((y + 1) % height);
+                  break;
 
-            case 1:
-               y = ((y + 1) % height);
-               break;
+               case 1:
+                  y = ((y + 1) % height);
+                  break;
 
-            case 2:
-               x = ((x + 1) % width);
-               y = ((y + 1) % height);
-               break;
-
-            case 3:
-               x--;
-               if (x < 0) { x += width; }
-               break;
-
-            case 4:
-               break;
-
-            case 5:
-               x = ((x + 1) % width);
-               break;
-
-            case 6:
-               x--;
-               if (x < 0) { x += width; }
-               y--;
-               if (y < 0) { y += height; }
-               break;
-
-            case 7:
-               y--;
-               if (y < 0) { y += height; }
-               break;
-
-            case 8:
-               x = ((x + 1) % width);
-               y--;
-               if (y < 0) { y += height; }
-               break;
+               case 2:
+                  x = ((x + 1) % width);
+                  y = ((y + 1) % height);
+                  break;
+               }
+               x2    = (int)(cellWidth * (double)x);
+               y2    = (int)(cellHeight * (double)(height - (y + 1)));
+               sx[0] = x2;
+               sy[0] = y2;
+               sx[1] = x2 + (int)cellWidth;
+               sy[1] = y2;
+               sx[2] = x2 + (int)cellWidth;
+               sy[2] = y2 + (int)cellHeight;
+               sx[3] = x2;
+               sy[3] = y2 + (int)cellHeight;
+               imageGraphics.drawPolygon(sx, sy, 4);
             }
-            x2    = (int)(cellWidth * (double)x);
-            y2    = (int)(cellHeight * (double)(height - (y + 1)));
-            vx[0] = x2;
-            vy[0] = y2;
-            vx[1] = x2 + (int)cellWidth;
-            vy[1] = y2;
-            vx[2] = x2 + (int)cellWidth;
-            vy[2] = y2 + (int)cellHeight;
-            vx[3] = x2;
-            vy[3] = y2 + (int)cellHeight;
-            imageGraphics.drawPolygon(vx, vy, 4);
+            break;
+
+         case Orientation.EAST:
+            for (int i = 0; i < 3; i++)
+            {
+               x = cx;
+               y = cy;
+               switch (i)
+               {
+               case 0:
+                  x = ((x + 1) % width);
+                  y = ((y + 1) % height);
+                  break;
+
+               case 1:
+                  x = ((x + 1) % width);
+                  break;
+
+               case 2:
+                  x = ((x + 1) % width);
+                  y--;
+                  if (y < 0) { y += height; }
+                  break;
+               }
+               x2    = (int)(cellWidth * (double)x);
+               y2    = (int)(cellHeight * (double)(height - (y + 1)));
+               sx[0] = x2;
+               sy[0] = y2;
+               sx[1] = x2 + (int)cellWidth;
+               sy[1] = y2;
+               sx[2] = x2 + (int)cellWidth;
+               sy[2] = y2 + (int)cellHeight;
+               sx[3] = x2;
+               sy[3] = y2 + (int)cellHeight;
+               imageGraphics.drawPolygon(sx, sy, 4);
+            }
+            break;
+
+         case Orientation.SOUTH:
+            for (int i = 0; i < 3; i++)
+            {
+               x = cx;
+               y = cy;
+               switch (i)
+               {
+               case 0:
+                  x = ((x + 1) % width);
+                  y--;
+                  if (y < 0) { y += height; }
+                  break;
+
+               case 1:
+                  y--;
+                  if (y < 0) { y += height; }
+                  break;
+
+               case 2:
+                  x--;
+                  if (x < 0) { x += width; }
+                  y--;
+                  if (y < 0) { y += height; }
+                  break;
+               }
+               x2    = (int)(cellWidth * (double)x);
+               y2    = (int)(cellHeight * (double)(height - (y + 1)));
+               sx[0] = x2;
+               sy[0] = y2;
+               sx[1] = x2 + (int)cellWidth;
+               sy[1] = y2;
+               sx[2] = x2 + (int)cellWidth;
+               sy[2] = y2 + (int)cellHeight;
+               sx[3] = x2;
+               sy[3] = y2 + (int)cellHeight;
+               imageGraphics.drawPolygon(sx, sy, 4);
+            }
+            break;
+
+         case Orientation.WEST:
+            for (int i = 0; i < 3; i++)
+            {
+               x = cx;
+               y = cy;
+               switch (i)
+               {
+               case 0:
+                  x--;
+                  if (x < 0) { x += width; }
+                  y--;
+                  if (y < 0) { y += height; }
+                  break;
+
+               case 1:
+                  x--;
+                  if (x < 0) { x += width; }
+                  break;
+
+               case 2:
+                  x--;
+                  if (x < 0) { x += width; }
+                  y = ((y + 1) % height);
+                  break;
+               }
+               x2    = (int)(cellWidth * (double)x);
+               y2    = (int)(cellHeight * (double)(height - (y + 1)));
+               sx[0] = x2;
+               sy[0] = y2;
+               sx[1] = x2 + (int)cellWidth;
+               sy[1] = y2;
+               sx[2] = x2 + (int)cellWidth;
+               sy[2] = y2 + (int)cellHeight;
+               sx[3] = x2;
+               sy[3] = y2 + (int)cellHeight;
+               imageGraphics.drawPolygon(sx, sy, 4);
+            }
+            break;
          }
 
          // Draw pufferfish.
-         vx = new int[3];
-         vy = new int[3];
+         px = new int[3];
+         py = new int[3];
          x2 = (int)(cellWidth * (double)pufferfish.x);
          y2 = (int)(cellHeight * (double)(height - (pufferfish.y + 1)));
-         if (pufferfish.orientation == Orientation.NORTH)
+         switch (pufferfish.orientation)
          {
-            vx[0] = x2 + (int)(cellWidth * 0.5f);
-            vy[0] = y2;
-            vx[1] = x2;
-            vy[1] = y2 + (int)cellHeight;
-            vx[2] = x2 + (int)cellWidth;
-            vy[2] = y2 + (int)cellHeight;
+         case Orientation.NORTH:
+            px[0] = x2 + (int)(cellWidth * 0.5f);
+            py[0] = y2;
+            px[1] = x2;
+            py[1] = y2 + (int)cellHeight;
+            px[2] = x2 + (int)cellWidth;
+            py[2] = y2 + (int)cellHeight;
+            break;
+
+         case Orientation.EAST:
+            px[0] = x2 + (int)(cellWidth);
+            py[0] = y2 + (int)(cellHeight * 0.5f);
+            px[1] = x2;
+            py[1] = y2;
+            px[2] = x2;
+            py[2] = y2 + (int)cellHeight;
+            break;
+
+         case Orientation.SOUTH:
+            px[0] = x2 + (int)(cellWidth * 0.5f);
+            py[0] = y2 + (int)cellHeight;
+            px[1] = x2;
+            py[1] = y2;
+            px[2] = x2 + (int)cellWidth;
+            py[2] = y2;
+            break;
+
+         case Orientation.WEST:
+            px[0] = x2;
+            py[0] = y2 + (int)(cellHeight * 0.5f);
+            px[1] = x2 + (int)cellWidth;
+            py[1] = y2;
+            px[2] = x2 + (int)cellWidth;
+            py[2] = y2 + (int)cellHeight;
+            break;
          }
-         else if (pufferfish.orientation == Orientation.EAST)
-         {
-            vx[0] = x2 + (int)(cellWidth);
-            vy[0] = y2 + (int)(cellHeight * 0.5f);
-            vx[1] = x2;
-            vy[1] = y2;
-            vx[2] = x2;
-            vy[2] = y2 + (int)cellHeight;
-         }
-         else if (pufferfish.orientation == Orientation.SOUTH)
-         {
-            vx[0] = x2 + (int)(cellWidth * 0.5f);
-            vy[0] = y2 + (int)cellHeight;
-            vx[1] = x2;
-            vy[1] = y2;
-            vx[2] = x2 + (int)cellWidth;
-            vy[2] = y2;
-         }
-         else
-         {
-            vx[0] = x2;
-            vy[0] = y2 + (int)(cellHeight * 0.5f);
-            vx[1] = x2 + (int)cellWidth;
-            vy[1] = y2;
-            vx[2] = x2 + (int)cellWidth;
-            vy[2] = y2 + (int)cellHeight;
-         }
-         imageGraphics.fillPolygon(vx, vy, 3);
+         imageGraphics.fillPolygon(px, py, 3);
 
          // Refresh display.
          graphics.drawImage(image, 0, 0, this);

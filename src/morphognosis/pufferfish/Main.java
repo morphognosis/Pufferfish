@@ -385,7 +385,7 @@ public class Main
          break;
 
       case Pufferfish.LOWER:
-         nest.cells[pufferfish.x][pufferfish.y][Nest.ELEVATION_CELL_INDEX] = 0;
+         nest.cells[pufferfish.x][pufferfish.y][Nest.ELEVATION_CELL_INDEX] = 2;
          break;
       }
    }
