@@ -26,7 +26,7 @@ public class Nest
    // Properties.
    public static int MAX_ELEVATION       = 4;
    public static int CENTER_RADIUS       = 2;
-   public static int NUM_SPOKES          = 8;
+   public static int NUM_SPOKES          = 12;
    public static int SPOKE_LENGTH        = 4;
    public static int SPOKE_RIPPLE_LENGTH = 2;
 

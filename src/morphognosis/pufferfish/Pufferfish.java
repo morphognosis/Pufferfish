@@ -646,8 +646,6 @@ public class Pufferfish
       else
       {
          if (spoke == Nest.NUM_SPOKES) { return; }
-         int n = radius + Nest.SPOKE_LENGTH + 1;
-         if (n == 1) { return; }
          SpokePoint p = spokePath.get(spokeIndex);
          if ((x == p.x) && (y == p.y))
          {
@@ -781,13 +779,13 @@ public class Pufferfish
    void genSpokePath()
    {
       spokePath = new ArrayList<SpokePoint>();
-      int   n     = radius + Nest.SPOKE_LENGTH + 1;
-      float angle = (360.0f / (float)Nest.NUM_SPOKES) * (float)spoke;
-      float vx    = (float)Math.cos(Math.toRadians(angle + 90.0f));
-      float vy    = (float)Math.sin(Math.toRadians(angle + 90.0f));
-      int   cx    = nest.size.width / 2;
-      int   cy    = nest.size.height / 2;
-      for (int i = 0; i < n; i++)
+      float  angle = (360.0f / (float)Nest.NUM_SPOKES) * (float)spoke;
+      float  vx    = (float)Math.cos(Math.toRadians(angle + 90.0f));
+      float  vy    = (float)Math.sin(Math.toRadians(angle + 90.0f));
+      int    cx    = nest.size.width / 2;
+      int    cy    = nest.size.height / 2;
+      double d     = (double)(Nest.CENTER_RADIUS + Nest.SPOKE_LENGTH);
+      for (int i = 0; ; i++)
       {
          int        px = (int)(vx * (float)i) + cx;
          int        py = (int)(vy * (float)i) + cy;
@@ -798,6 +796,9 @@ public class Pufferfish
             if ((p2.x == p.x) && (p2.y == p.y)) { continue; }
          }
          spokePath.add(p);
+         double dx = p.x - cx;
+         double dy = p.y - cy;
+         if (Math.sqrt((dx * dx) + (dy * dy)) >= d) { break; }
       }
       int a = Nest.SPOKE_RIPPLE_LENGTH / 2;
       int b = spokePath.size() - 1;
