@@ -541,14 +541,7 @@ public class Pufferfish
          if (smoothStep)
          {
             smoothStep = false;
-            if (step <= steps)
-            {
-               response = SMOOTH;
-            }
-            else
-            {
-               response = WAIT;
-            }
+            response   = SMOOTH;
          }
          else
          {
@@ -570,7 +563,8 @@ public class Pufferfish
                   break;
 
                case Orientation.NORTH:
-                  state    = 1;
+                  state = 1;
+                  genSpokePath();
                   response = TURN_LEFT;
                   break;
                }
@@ -854,7 +848,8 @@ public class Pufferfish
          {
             for (int y = 0; y < n; y++)
             {
-               for (int d = 0; d < morphognostic.eventDimensions; d++)
+               //for (int d = 0; d < morphognostic.eventDimensions; d++)
+               for (int d = 3; d < morphognostic.eventDimensions; d++)
                {
                   for (int j = 0; j < morphognostic.numEventTypes[d]; j++)
                   {
@@ -934,7 +929,8 @@ public class Pufferfish
          int n = neighborhood.sectors.length;
          for (int j = 0, j2 = n * n; j < j2; j++)
          {
-            for (int d = 0, d2 = m.morphognostic.eventDimensions; d < d2; d++)
+            //for (int d = 0, d2 = m.morphognostic.eventDimensions; d < d2; d++)
+            for (int d = 3, d2 = m.morphognostic.eventDimensions; d < d2; d++)
             {
                for (int k = 0, k2 = m.morphognostic.numEventTypes[d]; k < k2; k++)
                {
@@ -976,5 +972,62 @@ public class Pufferfish
          e.printStackTrace();
       }
       return(null);
+   }
+
+
+   // Print metamporph dataset.
+   public void printMetamorphDataset()
+   {
+      for (Metamorph m : metamorphs)
+      {
+         for (int i = 0; i < morphognostic.NUM_NEIGHBORHOODS; i++)
+         {
+            Neighborhood neighborhood = m.morphognostic.neighborhoods.get(i);
+            float[][][] densities = neighborhood.rectifySectorTypeDensities();
+            int n = neighborhood.sectors.length;
+            for (int j = 0, j2 = n * n; j < j2; j++)
+            {
+               //for (int d = 0, d2 = m.morphognostic.eventDimensions; d < d2; d++)
+               for (int d = 3, d2 = m.morphognostic.eventDimensions; d < d2; d++)
+               {
+                  for (int k = 0, k2 = m.morphognostic.numEventTypes[d]; k < k2; k++)
+                  {
+                     System.out.print(densities[j][d][k] + ",");
+                  }
+               }
+            }
+         }
+         System.out.println(Pufferfish.getResponseName(m.response));
+      }
+   }
+
+
+   // Get response name.
+   public static String getResponseName(int response)
+   {
+      switch (response)
+      {
+      case Pufferfish.WAIT:
+         return("wait");
+
+      case Pufferfish.FORWARD:
+         return("forward");
+
+      case Pufferfish.TURN_LEFT:
+         return("turn left");
+
+      case Pufferfish.TURN_RIGHT:
+         return("turn right");
+
+      case Pufferfish.SMOOTH:
+         return("smooth surface");
+
+      case Pufferfish.RAISE:
+         return("raise surface");
+
+      case Pufferfish.LOWER:
+         return("lower surface");
+      }
+      return("unknown");
    }
 }

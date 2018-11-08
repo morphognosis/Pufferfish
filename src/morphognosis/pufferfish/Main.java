@@ -94,8 +94,8 @@ public class Main
    public int          randomSeed;
    public SecureRandom random;
 
-   // Response.
-   int response;
+   // Previous response.
+   public static int previousResponse = Pufferfish.WAIT;
 
    // Constructor.
    public Main(int randomSeed)
@@ -103,7 +103,6 @@ public class Main
       this.randomSeed = randomSeed;
       random          = new SecureRandom();
       random.setSeed(randomSeed);
-      response = Pufferfish.WAIT;
    }
 
 
@@ -146,6 +145,7 @@ public class Main
       {
          display.close();
       }
+      previousResponse = Pufferfish.WAIT;
    }
 
 
@@ -244,7 +244,7 @@ public class Main
 
 
    // Step pufferfish.
-   void stepPufferfish()
+   public void stepPufferfish()
    {
       int x, y, toX, toY, width, height;
 
@@ -350,10 +350,11 @@ public class Main
          //sensors[i] = (float)nest.cells[x][y][Nest.ELEVATION_CELL_INDEX];
          sensors[i] = 0.0f;
       }
-      sensors[Pufferfish.PREVIOUS_RESPONSE_INDEX] = (float)response;
+      sensors[Pufferfish.PREVIOUS_RESPONSE_INDEX] = (float)previousResponse;
 
       // Cycle pufferfish.
-      response = pufferfish.cycle(sensors);
+      previousResponse = pufferfish.response;
+      int response = pufferfish.cycle(sensors);
 
       // Process response.
       switch (response)

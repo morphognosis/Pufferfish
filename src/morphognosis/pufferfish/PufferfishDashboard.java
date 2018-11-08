@@ -25,6 +25,7 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 
 import morphognosis.MorphognosticDisplay;
+import morphognosis.Orientation;
 
 public class PufferfishDashboard extends JFrame
 {
@@ -81,110 +82,131 @@ public class PufferfishDashboard extends JFrame
    // Update dashboard.
    void update()
    {
-      int x, y, cx, cy;
-      int width  = nestDisplay.nest.size.width;
-      int height = nestDisplay.nest.size.height;
-
-      String elevationString = "";
-      String s = "";
-
-      cx = pufferfish.x;
-      cy = pufferfish.y;
-      for (int i = 0; i < Pufferfish.NUM_SENSORS; i++)
+      // Update elevations.
+      int[] elevations = getElevations();
+      String elevationsString = "";
+      for (int i = 0, j = Pufferfish.NUM_SENSORS - 1, k = j - 1; i < j; i++)
       {
-         x = cx;
-         y = cy;
+         elevationsString += elevations[i];
+         if (i < k)
+         {
+            elevationsString += ",";
+         }
+      }
+      setElevations(elevationsString);
+
+      // Update previous response.
+      setPreviousResponse(Pufferfish.getResponseName(Main.previousResponse));
+
+      // Update response.
+      setResponse(Pufferfish.getResponseName(pufferfish.response));
+
+      // Update driver choice.
+      setDriverChoice(pufferfish.driver);
+   }
+
+
+   // Get elevations.
+   int[] getElevations()
+   {
+      int x, y, width, height;
+
+      int[] elevations = new int[Pufferfish.NUM_SENSORS - 1];
+
+      width  = nestDisplay.nest.size.width;
+      height = nestDisplay.nest.size.height;
+
+      // Initialize elevations.
+      for (int i = 0, j = Pufferfish.NUM_SENSORS - 1; i < j; i++)
+      {
+         x = pufferfish.x;
+         y = pufferfish.y;
          switch (i)
          {
          case 0:
-            x--;
-            if (x < 0) { x += width; }
-            y = ((y + 1) % height);
-            s = ",";
+            switch (pufferfish.orientation)
+            {
+            case Orientation.NORTH:
+               x--;
+               if (x < 0) { x += width; }
+               y = ((y + 1) % height);
+               break;
+
+            case Orientation.EAST:
+               x = ((x + 1) % width);
+               y = ((y + 1) % height);
+               break;
+
+            case Orientation.SOUTH:
+               x = ((x + 1) % width);
+               y--;
+               if (y < 0) { y += height; }
+               break;
+
+            case Orientation.WEST:
+               x--;
+               if (x < 0) { x += width; }
+               y--;
+               if (y < 0) { y += height; }
+               break;
+            }
             break;
 
          case 1:
-            y = ((y + 1) % height);
-            s = ",";
+            switch (pufferfish.orientation)
+            {
+            case Orientation.NORTH:
+               y = ((y + 1) % height);
+               break;
+
+            case Orientation.EAST:
+               x = ((x + 1) % width);
+               break;
+
+            case Orientation.SOUTH:
+               y--;
+               if (y < 0) { y += height; }
+               break;
+
+            case Orientation.WEST:
+               x--;
+               if (x < 0) { x += width; }
+               break;
+            }
             break;
 
          case 2:
-            x = ((x + 1) % width);
-            y = ((y + 1) % height);
-            s = "/";
-            break;
+            switch (pufferfish.orientation)
+            {
+            case Orientation.NORTH:
+               x = ((x + 1) % width);
+               y = ((y + 1) % height);
+               break;
 
-         case 3:
-            x--;
-            if (x < 0) { x += width; }
-            s = ",";
-            break;
+            case Orientation.EAST:
+               x = ((x + 1) % width);
+               y--;
+               if (y < 0) { y += height; }
+               break;
 
-         case 4:
-            s = ",";
-            break;
+            case Orientation.SOUTH:
+               x--;
+               if (x < 0) { x += width; }
+               y--;
+               if (y < 0) { y += height; }
+               break;
 
-         case 5:
-            x = ((x + 1) % width);
-            s = "/";
-            break;
-
-         case 6:
-            x--;
-            if (x < 0) { x += width; }
-            y--;
-            if (y < 0) { y += height; }
-            s = ",";
-            break;
-
-         case 7:
-            y--;
-            if (y < 0) { y += height; }
-            s = ",";
-            break;
-
-         case 8:
-            x = ((x + 1) % width);
-            y--;
-            if (y < 0) { y += height; }
+            case Orientation.WEST:
+               x--;
+               if (x < 0) { x += width; }
+               y = ((y + 1) % height);
+               break;
+            }
             break;
          }
-         elevationString += nestDisplay.nest.cells[x][y][0] + s;
+         elevations[i] = nestDisplay.nest.cells[x][y][Nest.ELEVATION_CELL_INDEX];
       }
-      setSensors(elevationString);
-      if (pufferfish.response == Pufferfish.WAIT)
-      {
-         setResponse("wait");
-      }
-      else if (pufferfish.response == Pufferfish.FORWARD)
-      {
-         setResponse("forward");
-      }
-      else if (pufferfish.response == Pufferfish.TURN_LEFT)
-      {
-         setResponse("turn left");
-      }
-      else if (pufferfish.response == Pufferfish.TURN_RIGHT)
-      {
-         setResponse("turn right");
-      }
-      else if (pufferfish.response == Pufferfish.SMOOTH)
-      {
-         setResponse("smooth surface");
-      }
-      else if (pufferfish.response == Pufferfish.RAISE)
-      {
-         setResponse("raise surface");
-      }
-      else if (pufferfish.response == Pufferfish.LOWER)
-      {
-         setResponse("lower surface");
-      }
-      else
-      {
-         setResponse("");
-      }
-      setDriverChoice(pufferfish.driver);
+      return(elevations);
    }
 
 
@@ -203,10 +225,17 @@ public class PufferfishDashboard extends JFrame
    }
 
 
-   // Set sensors display.
-   void setSensors(String elevationString)
+   // Set elevations display.
+   void setElevations(String elevationsString)
    {
-      sensorsResponse.elevationText.setText(elevationString);
+      sensorsResponse.elevationsText.setText(elevationsString);
+   }
+
+
+   // Set previous response display.
+   void setPreviousResponse(String previousResponseString)
+   {
+      sensorsResponse.previousResponseText.setText(previousResponseString);
    }
 
 
@@ -223,7 +252,8 @@ public class PufferfishDashboard extends JFrame
       private static final long serialVersionUID = 0L;
 
       // Components.
-      JTextField elevationText;
+      JTextField elevationsText;
+      JTextField previousResponseText;
       JTextField responseText;
 
       // Constructor.
@@ -234,15 +264,16 @@ public class PufferfishDashboard extends JFrame
                       BorderFactory.createLineBorder(Color.black),
                       "Sensors/Response"));
          JPanel sensorsPanel = new JPanel();
-         sensorsPanel.setLayout(new BorderLayout());
+         sensorsPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
          add(sensorsPanel, BorderLayout.NORTH);
-         JPanel elevationPanel = new JPanel();
-         elevationPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
-         sensorsPanel.add(elevationPanel, BorderLayout.CENTER);
-         elevationPanel.add(new JLabel("Elevations:"));
-         elevationText = new JTextField(20);
-         elevationText.setEditable(false);
-         elevationPanel.add(elevationText);
+         sensorsPanel.add(new JLabel("Elevations:"));
+         elevationsText = new JTextField(20);
+         elevationsText.setEditable(false);
+         sensorsPanel.add(elevationsText);
+         sensorsPanel.add(new JLabel("Previous response:"));
+         previousResponseText = new JTextField(10);
+         previousResponseText.setEditable(false);
+         sensorsPanel.add(previousResponseText);
          JPanel responsePanel = new JPanel();
          responsePanel.setLayout(new FlowLayout(FlowLayout.LEFT));
          add(responsePanel, BorderLayout.SOUTH);
@@ -281,6 +312,7 @@ public class PufferfishDashboard extends JFrame
       JButton  raiseSurfaceButton;
       JButton  lowerSurfaceButton;
       Checkbox trainNNcheck;
+      JButton  printMetamorphDatasetButton;
 
       // Constructor.
       public DriverPanel()
@@ -328,6 +360,9 @@ public class PufferfishDashboard extends JFrame
          trainNNcheck.setState(false);
          trainNNcheck.addItemListener(this);
          trainNNpanel.add(trainNNcheck);
+         printMetamorphDatasetButton = new JButton("Print dataset");
+         printMetamorphDatasetButton.addActionListener(this);
+         trainNNpanel.add(printMetamorphDatasetButton);
       }
 
 
@@ -397,6 +432,12 @@ public class PufferfishDashboard extends JFrame
          if ((JButton)evt.getSource() == lowerSurfaceButton)
          {
             pufferfish.driverResponse = Pufferfish.LOWER;
+            return;
+         }
+
+         if ((JButton)evt.getSource() == printMetamorphDatasetButton)
+         {
+            pufferfish.printMetamorphDataset();
             return;
          }
       }
