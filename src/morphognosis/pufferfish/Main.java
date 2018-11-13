@@ -347,8 +347,14 @@ public class Main
             }
             break;
          }
-         //sensors[i] = (float)nest.cells[x][y][Nest.ELEVATION_CELL_INDEX];
-         sensors[i] = 0.0f;
+         if (Pufferfish.IGNORE_ELEVATION_SENSOR_VALUES)
+         {
+            sensors[i] = 0.0f;
+         }
+         else
+         {
+            sensors[i] = (float)nest.cells[x][y][Nest.ELEVATION_CELL_INDEX];
+         }
       }
       sensors[Pufferfish.PREVIOUS_RESPONSE_INDEX] = (float)previousResponse;
 

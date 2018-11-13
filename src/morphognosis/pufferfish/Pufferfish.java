@@ -64,6 +64,7 @@ public class Pufferfish
    public static final int PREVIOUS_RESPONSE_INDEX = 3;
    public static final int NUM_SENSORS             = 4;
    float[] sensors;
+   public static boolean IGNORE_ELEVATION_SENSOR_VALUES = false;
 
    // Response.
    public static final int WAIT          = 0;
@@ -840,6 +841,12 @@ public class Pufferfish
    // Initialize metamorph neural network.
    public void initMetamorphNN()
    {
+      int dx = 0;
+
+      if (Pufferfish.IGNORE_ELEVATION_SENSOR_VALUES)
+      {
+         dx = 3;
+      }
       metamorphNNattributeNames = new FastVector();
       for (int i = 0; i < morphognostic.NUM_NEIGHBORHOODS; i++)
       {
@@ -848,8 +855,7 @@ public class Pufferfish
          {
             for (int y = 0; y < n; y++)
             {
-               //for (int d = 0; d < morphognostic.eventDimensions; d++)
-               for (int d = 3; d < morphognostic.eventDimensions; d++)
+               for (int d = dx; d < morphognostic.eventDimensions; d++)
                {
                   for (int j = 0; j < morphognostic.numEventTypes[d]; j++)
                   {
@@ -920,6 +926,12 @@ public class Pufferfish
    // Create metamorph NN instance.
    Instance createInstance(Instances instances, Metamorph m)
    {
+      int dx = 0;
+
+      if (Pufferfish.IGNORE_ELEVATION_SENSOR_VALUES)
+      {
+         dx = 3;
+      }
       double[]  attrValues = new double[instances.numAttributes()];
       int a = 0;
       for (int i = 0; i < morphognostic.NUM_NEIGHBORHOODS; i++)
@@ -929,8 +941,7 @@ public class Pufferfish
          int n = neighborhood.sectors.length;
          for (int j = 0, j2 = n * n; j < j2; j++)
          {
-            //for (int d = 0, d2 = m.morphognostic.eventDimensions; d < d2; d++)
-            for (int d = 3, d2 = m.morphognostic.eventDimensions; d < d2; d++)
+            for (int d = dx, d2 = m.morphognostic.eventDimensions; d < d2; d++)
             {
                for (int k = 0, k2 = m.morphognostic.numEventTypes[d]; k < k2; k++)
                {
@@ -978,6 +989,12 @@ public class Pufferfish
    // Print metamporph dataset.
    public void printMetamorphDataset()
    {
+      int dx = 0;
+
+      if (Pufferfish.IGNORE_ELEVATION_SENSOR_VALUES)
+      {
+         dx = 3;
+      }
       for (Metamorph m : metamorphs)
       {
          for (int i = 0; i < morphognostic.NUM_NEIGHBORHOODS; i++)
@@ -987,8 +1004,7 @@ public class Pufferfish
             int n = neighborhood.sectors.length;
             for (int j = 0, j2 = n * n; j < j2; j++)
             {
-               //for (int d = 0, d2 = m.morphognostic.eventDimensions; d < d2; d++)
-               for (int d = 3, d2 = m.morphognostic.eventDimensions; d < d2; d++)
+               for (int d = dx, d2 = m.morphognostic.eventDimensions; d < d2; d++)
                {
                   for (int k = 0, k2 = m.morphognostic.numEventTypes[d]; k < k2; k++)
                   {
@@ -999,6 +1015,7 @@ public class Pufferfish
          }
          System.out.println(Pufferfish.getResponseName(m.response));
       }
+      System.out.flush();
    }
 
 
