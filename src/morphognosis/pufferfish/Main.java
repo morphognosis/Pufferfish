@@ -26,7 +26,6 @@
 
 package morphognosis.pufferfish;
 
-import java.awt.Dimension;
 import java.io.BufferedOutputStream;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -51,9 +50,9 @@ public class Main
       "Usage:\n" +
       "  New run:\n" +
       "    java morphognosis.pufferfish.Main\n" +
-      "      -steps <steps> | -display\n" +
+      "      [-steps <steps> | -display (default)]\n" +
       "      Nest properties:\n" +
-      "         -nestDimensions <width> <height>\n" +
+      "        [-nestDimensions <width> <height> (default=" + Nest.WIDTH + " " + Nest.HEIGHT + ")]\n" +
       "        [-maxElevation <quantity> (default=" + Nest.MAX_ELEVATION + ")]\n" +
       "        [-centerRadius <quantity> (default=" + Nest.CENTER_RADIUS + ")]\n" +
       "        [-numSpokes <quantity> (default=" + Nest.NUM_SPOKES + ")]\n" +
@@ -72,8 +71,8 @@ public class Main
       "     [-save <file name>]\n" +
       "  Resume run:\n" +
       "    java morphognosis.pufferfish.Main\n" +
-      "      -steps <steps> | -display\n" +
       "      -load <file name>\n" +
+      "     [-steps <steps> | -display (default)]\n" +
       "     [-driver <metamorphDB | metamorphNN | autopilot> (default=autopilot)]\n" +
       "     [-randomSeed <random number seed>]\n" +
       "     [-save <file name>]\n" +
@@ -107,8 +106,7 @@ public class Main
 
 
    // Initialize.
-   public void init(int width, int height,
-                    int NUM_NEIGHBORHOODS,
+   public void init(int NUM_NEIGHBORHOODS,
                     int NEIGHBORHOOD_INITIAL_DIMENSION,
                     int NEIGHBORHOOD_DIMENSION_STRIDE,
                     int NEIGHBORHOOD_DIMENSION_MULTIPLIER,
@@ -116,7 +114,7 @@ public class Main
                     int EPOCH_INTERVAL_MULTIPLIER)
    {
       // Create nest.
-      nest = new Nest(new Dimension(width, height), randomSeed);
+      nest = new Nest(randomSeed);
 
       // Create pufferfish.
       pufferfish = new Pufferfish(nest, randomSeed,
@@ -452,8 +450,6 @@ public class Main
    {
       // Get options.
       int     steps             = -1;
-      int     width             = -1;
-      int     height            = -1;
       int     driver            = Pufferfish.DRIVER_TYPE.AUTOPILOT.getValue();
       int     randomSeed        = DEFAULT_RANDOM_SEED;
       String  loadfile          = null;
@@ -511,14 +507,14 @@ public class Main
             }
             try
             {
-               width = Integer.parseInt(args[i]);
+               Nest.WIDTH = Integer.parseInt(args[i]);
             }
             catch (NumberFormatException e) {
                System.err.println("Invalid nest width");
                System.err.println(Usage);
                System.exit(1);
             }
-            if (width < 2)
+            if (Nest.WIDTH < 2)
             {
                System.err.println("Invalid nest width");
                System.err.println(Usage);
@@ -533,19 +529,20 @@ public class Main
             }
             try
             {
-               height = Integer.parseInt(args[i]);
+               Nest.HEIGHT = Integer.parseInt(args[i]);
             }
             catch (NumberFormatException e) {
                System.err.println("Invalid nest height");
                System.err.println(Usage);
                System.exit(1);
             }
-            if (height < 2)
+            if (Nest.HEIGHT < 2)
             {
                System.err.println("Invalid nest height");
                System.err.println(Usage);
                System.exit(1);
             }
+            gotParm = true;
             continue;
          }
          if (args[i].equals("-driver"))
@@ -601,6 +598,7 @@ public class Main
                System.err.println(Usage);
                System.exit(1);
             }
+            gotParm = true;
             continue;
          }
          if (args[i].equals("-centerRadius"))
@@ -627,6 +625,7 @@ public class Main
                System.err.println(Usage);
                System.exit(1);
             }
+            gotParm = true;
             continue;
          }
          if (args[i].equals("-numSpokes"))
@@ -653,6 +652,7 @@ public class Main
                System.err.println(Usage);
                System.exit(1);
             }
+            gotParm = true;
             continue;
          }
          if (args[i].equals("-spokeLength"))
@@ -679,6 +679,7 @@ public class Main
                System.err.println(Usage);
                System.exit(1);
             }
+            gotParm = true;
             continue;
          }
          if (args[i].equals("-spokeRippleLength"))
@@ -711,6 +712,7 @@ public class Main
                System.err.println(Usage);
                System.exit(1);
             }
+            gotParm = true;
             continue;
          }
          if (args[i].equals("-numNeighborhoods"))
@@ -969,10 +971,14 @@ public class Main
       }
 
       // Check options.
-      if (((steps < 0) && !display) || ((steps >= 0) && display))
+      if ((steps != -1) && display)
       {
          System.err.println(Usage);
          System.exit(1);
+      }
+      else if ((steps == -1) && !display)
+      {
+         display = true;
       }
       if (!display)
       {
@@ -983,21 +989,10 @@ public class Main
             System.exit(1);
          }
       }
-      if (loadfile == null)
+      if ((loadfile != null) && gotParm)
       {
-         if ((width == -1) || (height == -1))
-         {
-            System.err.println(Usage);
-            System.exit(1);
-         }
-      }
-      else
-      {
-         if ((width != -1) || (height != -1) || gotParm)
-         {
-            System.err.println(Usage);
-            System.exit(1);
-         }
+         System.err.println(Usage);
+         System.exit(1);
       }
 
       // Set look and feel.
@@ -1027,8 +1022,7 @@ public class Main
       {
          try
          {
-            main.init(width, height,
-                      NUM_NEIGHBORHOODS,
+            main.init(NUM_NEIGHBORHOODS,
                       NEIGHBORHOOD_INITIAL_DIMENSION,
                       NEIGHBORHOOD_DIMENSION_STRIDE,
                       NEIGHBORHOOD_DIMENSION_MULTIPLIER,

@@ -24,6 +24,8 @@ import java.io.IOException;
 public class Nest
 {
    // Properties.
+   public static int WIDTH               = 21;
+   public static int HEIGHT              = 21;
    public static int MAX_ELEVATION       = 7;
    public static int CENTER_RADIUS       = 2;
    public static int NUM_SPOKES          = 28;
@@ -49,9 +51,9 @@ public class Nest
    public String nestImageFile;
 
    // Constructors.
-   public Nest(Dimension size, int randomSeed)
+   public Nest(int randomSeed)
    {
-      int x, y, width, height;
+      int x, y;
 
       // Random numbers.
       random          = new SecureRandom();
@@ -59,11 +61,9 @@ public class Nest
       random.setSeed(randomSeed);
 
       // Create cells.
-      this.size    = size;
-      width        = size.width;
-      height       = size.height;
-      cells        = new int[width][height][CELL_DIMENSIONS];
-      restoreCells = new int[width][height][CELL_DIMENSIONS];
+      size         = new Dimension(WIDTH, HEIGHT);
+      cells        = new int[WIDTH][HEIGHT][CELL_DIMENSIONS];
+      restoreCells = new int[WIDTH][HEIGHT][CELL_DIMENSIONS];
       for (x = 0; x < size.width; x++)
       {
          for (y = 0; y < size.height; y++)
@@ -232,8 +232,8 @@ public class Nest
    {
       int x, y;
 
-      Utility.saveInt(writer, size.width);
-      Utility.saveInt(writer, size.height);
+      Utility.saveInt(writer, WIDTH);
+      Utility.saveInt(writer, HEIGHT);
       Utility.saveInt(writer, MAX_ELEVATION);
       Utility.saveInt(writer, CENTER_RADIUS);
       Utility.saveInt(writer, NUM_SPOKES);
@@ -283,19 +283,19 @@ public class Nest
    // Load cells.
    public void load(FileInputStream input) throws IOException
    {
-      int w, h, x, y;
+      int x, y;
 
       DataInputStream reader = new DataInputStream(input);
 
-      w                   = Utility.loadInt(reader);
-      h                   = Utility.loadInt(reader);
+      WIDTH               = Utility.loadInt(reader);
+      HEIGHT              = Utility.loadInt(reader);
       MAX_ELEVATION       = Utility.loadInt(reader);
       CENTER_RADIUS       = Utility.loadInt(reader);
       NUM_SPOKES          = Utility.loadInt(reader);
       SPOKE_LENGTH        = Utility.loadInt(reader);
       SPOKE_RIPPLE_LENGTH = Utility.loadInt(reader);
-      size.width          = w;
-      size.height         = h;
+      size.width          = WIDTH;
+      size.height         = HEIGHT;
       cells               = new int[size.width][size.height][2];
       restoreCells        = new int[size.width][size.height][2];
       clear();
@@ -503,7 +503,8 @@ public class Nest
    public void printProperties()
    {
       System.out.println("Nest properties:");
-      System.out.println("Dimensions = " + size.width + "," + size.height);
+      System.out.println("WIDTH = " + WIDTH);
+      System.out.println("HEIGHT = " + HEIGHT);
       System.out.println("MAX_ELEVATION = " + MAX_ELEVATION);
       System.out.println("CENTER_RADIUS = " + CENTER_RADIUS);
       System.out.println("NUM_SPOKES = " + NUM_SPOKES);

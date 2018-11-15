@@ -61,18 +61,18 @@ public class PufferfishDashboard extends JFrame
       morphognostic = new MorphognosticDisplay(0, pufferfish.morphognostic);
       basePanel.add(morphognostic, BorderLayout.SOUTH);
       pack();
-      setCenterLocation();
+      setLocation();
       setVisible(false);
       update();
    }
 
 
-   void setCenterLocation()
+   void setLocation()
    {
       Dimension dim = Toolkit.getDefaultToolkit().getScreenSize();
       int       w   = getSize().width;
       int       h   = getSize().height;
-      int       x   = (dim.width - w) / 2;
+      int       x   = (int)((float)(dim.width - w) * 0.9f);
       int       y   = (dim.height - h) / 2;
 
       setLocation(x, y);

@@ -38,7 +38,7 @@ public class NestEditor extends JFrame
       "Usage:\n" +
       "  New run:\n" +
       "    java morphognosis.pufferfish.NestEditor\n" +
-      "      -nestDimensions <width> <height>\n" +
+      "     [-nestDimensions <width> <height> (default=" + Nest.WIDTH + " " + Nest.HEIGHT + ")]\n" +
       "     [-maxElevation <quantity> (default=" + Nest.MAX_ELEVATION + ")]\n" +
       "     [-randomSeed <random number seed> (default=" + Main.DEFAULT_RANDOM_SEED + ")]\n" +
       "     [-save <file name>]\n" +
@@ -479,12 +479,10 @@ public class NestEditor extends JFrame
    public static void main(String[] args)
    {
       // Get options.
-      int    width        = -1;
-      int    height       = -1;
-      int    maxElevation = -1;
-      int    randomSeed   = Main.DEFAULT_RANDOM_SEED;
-      String loadfile     = null;
-      String savefile     = null;
+      int     randomSeed = Main.DEFAULT_RANDOM_SEED;
+      String  loadfile   = null;
+      String  savefile   = null;
+      boolean gotParm    = false;
 
       for (int i = 0; i < args.length; i++)
       {
@@ -499,14 +497,14 @@ public class NestEditor extends JFrame
             }
             try
             {
-               width = Integer.parseInt(args[i]);
+               Nest.WIDTH = Integer.parseInt(args[i]);
             }
             catch (NumberFormatException e) {
                System.err.println("Invalid nest width");
                System.err.println(Usage);
                System.exit(1);
             }
-            if (width < 2)
+            if (Nest.WIDTH < 2)
             {
                System.err.println("Invalid nest width");
                System.err.println(Usage);
@@ -521,19 +519,20 @@ public class NestEditor extends JFrame
             }
             try
             {
-               height = Integer.parseInt(args[i]);
+               Nest.HEIGHT = Integer.parseInt(args[i]);
             }
             catch (NumberFormatException e) {
                System.err.println("Invalid nest height");
                System.err.println(Usage);
                System.exit(1);
             }
-            if (height < 2)
+            if (Nest.HEIGHT < 2)
             {
                System.err.println("Invalid nest height");
                System.err.println(Usage);
                System.exit(1);
             }
+            gotParm = true;
             continue;
          }
          if (args[i].equals("-maxElevation"))
@@ -560,6 +559,7 @@ public class NestEditor extends JFrame
                System.err.println(Usage);
                System.exit(1);
             }
+            gotParm = true;
             continue;
          }
          if (args[i].equals("-randomSeed"))
@@ -631,15 +631,7 @@ public class NestEditor extends JFrame
       // Check options.
       if (loadfile == null)
       {
-         if ((width == -1) || (height == -1))
-         {
-            System.err.println(Usage);
-            System.exit(1);
-         }
-      }
-      else
-      {
-         if ((maxElevation != -1) || (width != -1) || (height != -1))
+         if (gotParm)
          {
             System.err.println(Usage);
             System.exit(1);
@@ -659,7 +651,7 @@ public class NestEditor extends JFrame
       Nest nest;
       if (loadfile == null)
       {
-         nest = new Nest(new Dimension(width, height), randomSeed);
+         nest = new Nest(randomSeed);
       }
       else
       {

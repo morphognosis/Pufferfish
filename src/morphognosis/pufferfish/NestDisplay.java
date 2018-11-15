@@ -77,9 +77,6 @@ public class NestDisplay extends JFrame
       this.randomSeed = randomSeed;
       random.setSeed(randomSeed);
 
-      // Create pufferfish dashboard.
-      pufferfishDashboard = new PufferfishDashboard(pufferfish, this);
-
       // Set up display.
       setTitle("Pufferfish nest building");
       addWindowListener(new WindowAdapter()
@@ -107,17 +104,21 @@ public class NestDisplay extends JFrame
 
       // Make display visible.
       pack();
-      setCenterLocation();
+      setLocation();
       setVisible(true);
+
+      // Create pufferfish dashboard.
+      pufferfishDashboard = new PufferfishDashboard(pufferfish, this);
+      pufferfishDashboard.setVisible(true);
    }
 
 
-   void setCenterLocation()
+   void setLocation()
    {
       Dimension dim = Toolkit.getDefaultToolkit().getScreenSize();
       int       w   = getSize().width;
       int       h   = getSize().height;
-      int       x   = (dim.width - w) / 2;
+      int       x   = (dim.width - w) / 4;
       int       y   = (dim.height - h) / 2;
 
       setLocation(x, y);
@@ -643,7 +644,7 @@ public class NestDisplay extends JFrame
          panel.add(stepCounter);
          add(panel, BorderLayout.NORTH);
          panel       = new JPanel();
-         messageText = new JTextField("", 40);
+         messageText = new JTextField("Click pufferfish to toggle dashboard", 40);
          messageText.setEditable(false);
          panel.add(messageText);
          add(panel, BorderLayout.SOUTH);
@@ -660,13 +661,16 @@ public class NestDisplay extends JFrame
       // Speed slider listener.
       public void stateChanged(ChangeEvent evt)
       {
+         messageText.setText("");
          setStepDelay(speedSlider.getValue());
       }
 
 
-      // Step button listener.
+      // Button listener.
       public void actionPerformed(ActionEvent evt)
       {
+         messageText.setText("");
+
          // Reset?
          if (evt.getSource() == (Object)resetButton)
          {
