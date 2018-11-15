@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Tom Portegys (portegys@gmail.com). All rights reserved.
+ * Copyright (c) 2017-2018 Tom Portegys (portegys@gmail.com). All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are
  * permitted provided that the following conditions are met:
@@ -34,11 +34,16 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.security.SecureRandom;
 import javax.swing.UIManager;
+
+import morphognosis.Morphognosis;
 import morphognosis.Morphognostic;
 import morphognosis.Orientation;
 
 public class Main
 {
+   // Version.
+   public static final String VERSION = "1.0";
+
    // Nest image.
    public static final String NEST_IMAGE_FILE = "pufferfish_nest.png";
 
@@ -76,6 +81,8 @@ public class Main
       "     [-driver <metamorphDB | metamorphNN | autopilot> (default=autopilot)]\n" +
       "     [-randomSeed <random number seed>]\n" +
       "     [-save <file name>]\n" +
+      "  Version:\n" +
+      "    java morphognosis.pufferfish.Main -version\n" +
       "Exit codes:\n" +
       "  0=success\n" +
       "  1=error";
@@ -966,6 +973,18 @@ public class Main
             }
             continue;
          }
+         if (args[i].equals("-help") || args[i].equals("-h") || args[i].equals("-?"))
+         {
+            System.out.println(Usage);
+            System.exit(0);
+         }
+         if (args[i].equals("-version"))
+         {
+            System.out.println("Pufferfish version = " + VERSION);
+            System.out.println("Morphognosis version = " + Morphognosis.VERSION);
+            System.exit(0);
+         }
+         System.err.println("Invalid option: " + args[i]);
          System.err.println(Usage);
          System.exit(1);
       }
