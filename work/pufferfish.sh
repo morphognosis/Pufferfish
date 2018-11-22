@@ -1,1 +1,1 @@
-java -jar ../bin/pufferfish.jar -numNeighborhoods 4 $*
+java -cp ../bin/pufferfish.jar morphognosis.pufferfish.Main -numNeighborhoods 4 $*

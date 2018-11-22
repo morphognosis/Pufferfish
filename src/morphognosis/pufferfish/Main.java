@@ -71,16 +71,18 @@ public class Main
       "        [-epochIntervalStride <quantity> (default=" + Morphognostic.DEFAULT_EPOCH_INTERVAL_STRIDE + ")]\n" +
       "        [-epochIntervalMultiplier <quantity> (default=" + Morphognostic.DEFAULT_EPOCH_INTERVAL_MULTIPLIER + ")]\n" +
       "        [-equivalentMorphognosticDistance <distance> (default=" + Pufferfish.EQUIVALENT_MORPHOGNOSTIC_DISTANCE + ")]\n" +
-      "     [-driver <metamorphDB | metamorphNN | autopilot> (pufferfish driver: default=autopilot)]\n" +
+      "     [-driver <metamorphRules | autopilot> (pufferfish driver: default=autopilot)]\n" +
       "     [-randomSeed <random number seed> (default=" + DEFAULT_RANDOM_SEED + ")]\n" +
       "     [-save <file name>]\n" +
+      "     [-writeMetamorphDataset <file name> (write metamorph dataset file, default=" + Pufferfish.DATASET_FILE_NAME + ")]\n" +
       "  Resume run:\n" +
       "    java morphognosis.pufferfish.Main\n" +
       "      -load <file name>\n" +
       "     [-steps <steps> | -display (default)]\n" +
-      "     [-driver <metamorphDB | metamorphNN | autopilot> (default=autopilot)]\n" +
+      "     [-driver <metamorphRules | autopilot> (default=autopilot)]\n" +
       "     [-randomSeed <random number seed>]\n" +
       "     [-save <file name>]\n" +
+      "     [-writeMetamorphDataset <file name> (write metamorph dataset file, default=" + Pufferfish.DATASET_FILE_NAME + ")]\n" +
       "  Version:\n" +
       "    java morphognosis.pufferfish.Main -version\n" +
       "Exit codes:\n" +
@@ -463,6 +465,7 @@ public class Main
       String  savefile          = null;
       boolean display           = false;
       boolean gotParm           = false;
+      boolean gotDatasetParm    = false;
       int     NUM_NEIGHBORHOODS = Morphognostic.DEFAULT_NUM_NEIGHBORHOODS;
       int     NEIGHBORHOOD_INITIAL_DIMENSION    = Morphognostic.DEFAULT_NEIGHBORHOOD_INITIAL_DIMENSION;
       int     NEIGHBORHOOD_DIMENSION_STRIDE     = Morphognostic.DEFAULT_NEIGHBORHOOD_DIMENSION_STRIDE;
@@ -561,13 +564,9 @@ public class Main
                System.err.println(Usage);
                System.exit(1);
             }
-            if (args[i].equals("metamorphDB"))
+            if (args[i].equals("metamorphRules"))
             {
-               driver = Pufferfish.DRIVER_TYPE.METAMORPH_DB.getValue();
-            }
-            else if (args[i].equals("metamorphNN"))
-            {
-               driver = Pufferfish.DRIVER_TYPE.METAMORPH_NN.getValue();
+               driver = Pufferfish.DRIVER_TYPE.METAMORPH_RULES.getValue();
             }
             else if (args[i].equals("autopilot"))
             {
@@ -973,6 +972,19 @@ public class Main
             }
             continue;
          }
+         if (args[i].equals("-writeMetamorphDataset"))
+         {
+            i++;
+            if (i >= args.length)
+            {
+               System.err.println("Invalid writeMetamorphDataset option");
+               System.err.println(Usage);
+               System.exit(1);
+            }
+            Pufferfish.DATASET_FILE_NAME = args[i];
+            gotDatasetParm = true;
+            continue;
+         }
          if (args[i].equals("-help") || args[i].equals("-h") || args[i].equals("-?"))
          {
             System.out.println(Usage);
@@ -1067,18 +1079,6 @@ public class Main
 
       // Set pufferfish driver.
       main.pufferfish.driver = driver;
-      if (driver == Pufferfish.DRIVER_TYPE.METAMORPH_NN.getValue())
-      {
-         try
-         {
-            System.out.println("Training metamorph NN...");
-            main.pufferfish.createMetamorphNN();
-         }
-         catch (Exception e)
-         {
-            System.err.println("Cannot train metamorph NN: " + e.getMessage());
-         }
-      }
 
       // Run.
       main.run(steps);
@@ -1093,6 +1093,20 @@ public class Main
          catch (Exception e)
          {
             System.err.println("Cannot save to file " + savefile + ": " + e.getMessage());
+            System.exit(1);
+         }
+      }
+
+      // Write metamorph dataset?
+      if (gotDatasetParm)
+      {
+         try
+         {
+            main.pufferfish.writeMetamorphDataset();
+         }
+         catch (Exception e)
+         {
+            System.err.println("Cannot write metamorph dataset to file " + Pufferfish.DATASET_FILE_NAME + ": " + e.getMessage());
             System.exit(1);
          }
       }

@@ -5,7 +5,6 @@
 package morphognosis.pufferfish;
 
 import java.awt.BorderLayout;
-import java.awt.Checkbox;
 import java.awt.Choice;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -18,6 +17,7 @@ import java.awt.event.ItemListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -35,6 +35,7 @@ public class PufferfishDashboard extends JFrame
    SensorsResponsePanel sensorsResponse;
    DriverPanel          driver;
    MorphognosticDisplay morphognostic;
+   OperationsPanel      operations;
 
    // Targets.
    Pufferfish  pufferfish;
@@ -53,13 +54,15 @@ public class PufferfishDashboard extends JFrame
                         }
                         );
       JPanel basePanel = (JPanel)getContentPane();
-      basePanel.setLayout(new BorderLayout());
+      basePanel.setLayout(new BoxLayout(basePanel, BoxLayout.Y_AXIS));
       sensorsResponse = new SensorsResponsePanel();
-      basePanel.add(sensorsResponse, BorderLayout.NORTH);
+      basePanel.add(sensorsResponse);
       driver = new DriverPanel();
-      basePanel.add(driver, BorderLayout.CENTER);
+      basePanel.add(driver);
       morphognostic = new MorphognosticDisplay(0, pufferfish.morphognostic);
-      basePanel.add(morphognostic, BorderLayout.SOUTH);
+      basePanel.add(morphognostic);
+      operations = new OperationsPanel();
+      basePanel.add(operations);
       pack();
       setLocation();
       setVisible(false);
@@ -228,7 +231,14 @@ public class PufferfishDashboard extends JFrame
    // Set elevations display.
    void setElevations(String elevationsString)
    {
-      sensorsResponse.elevationsText.setText(elevationsString);
+      if (Pufferfish.IGNORE_ELEVATION_SENSOR_VALUES)
+      {
+         sensorsResponse.elevationsText.setText("ignored");
+      }
+      else
+      {
+         sensorsResponse.elevationsText.setText(elevationsString);
+      }
    }
 
 
@@ -304,15 +314,13 @@ public class PufferfishDashboard extends JFrame
       private static final long serialVersionUID = 0L;
 
       // Components.
-      Choice   driverChoice;
-      JButton  forwardButton;
-      JButton  turnLeftButton;
-      JButton  turnRightButton;
-      JButton  smoothSurfaceButton;
-      JButton  raiseSurfaceButton;
-      JButton  lowerSurfaceButton;
-      Checkbox trainNNcheck;
-      JButton  printMetamorphDatasetButton;
+      Choice  driverChoice;
+      JButton forwardButton;
+      JButton turnLeftButton;
+      JButton turnRightButton;
+      JButton smoothSurfaceButton;
+      JButton raiseSurfaceButton;
+      JButton lowerSurfaceButton;
 
       // Constructor.
       public DriverPanel()
@@ -323,12 +331,10 @@ public class PufferfishDashboard extends JFrame
          JPanel driverPanel = new JPanel();
          driverPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
          add(driverPanel, BorderLayout.NORTH);
-         driverPanel.add(new JLabel("Driver:"));
          driverChoice = new Choice();
          driverPanel.add(driverChoice);
-         driverChoice.add("metamorphDB");
-         driverChoice.add("metamorphNN");
          driverChoice.add("autopilot");
+         driverChoice.add("metamorphRules");
          driverChoice.add("manual");
          driverChoice.addItemListener(this);
          JPanel responsePanel = new JPanel();
@@ -352,17 +358,10 @@ public class PufferfishDashboard extends JFrame
          lowerSurfaceButton = new JButton("Lower");
          lowerSurfaceButton.addActionListener(this);
          responsePanel.add(lowerSurfaceButton);
-         JPanel trainNNpanel = new JPanel();
-         trainNNpanel.setLayout(new FlowLayout(FlowLayout.LEFT));
-         add(trainNNpanel, BorderLayout.SOUTH);
-         trainNNpanel.add(new JLabel("Train NN:"));
-         trainNNcheck = new Checkbox();
-         trainNNcheck.setState(false);
-         trainNNcheck.addItemListener(this);
-         trainNNpanel.add(trainNNcheck);
-         printMetamorphDatasetButton = new JButton("Print dataset");
-         printMetamorphDatasetButton.addActionListener(this);
-         trainNNpanel.add(printMetamorphDatasetButton);
+         JPanel datasetpanel = new JPanel();
+         datasetpanel.setLayout(new FlowLayout(FlowLayout.LEFT));
+         add(datasetpanel, BorderLayout.SOUTH);
+         setManualResponseButtons(false);
       }
 
 
@@ -374,25 +373,55 @@ public class PufferfishDashboard extends JFrame
          if (source instanceof Choice && ((Choice)source == driverChoice))
          {
             pufferfish.driver = driverChoice.getSelectedIndex();
-            pufferfish.initAutopilot();
-            return;
-         }
-         if (source instanceof Checkbox && ((Checkbox)source == trainNNcheck))
-         {
-            if (trainNNcheck.getState())
+
+            if (pufferfish.driver == Pufferfish.DRIVER_TYPE.MANUAL.getValue())
             {
-               try
-               {
-                  pufferfish.createMetamorphNN();
-               }
-               catch (Exception e)
-               {
-                  nestDisplay.controls.messageText.setText("Cannot train metamorph NN: " + e.getMessage());
-               }
-               trainNNcheck.setState(false);
+               setManualResponseButtons(true);
+               return;
             }
-            return;
+            else
+            {
+               setManualResponseButtons(false);
+            }
+
+            if (pufferfish.driver == Pufferfish.DRIVER_TYPE.AUTOPILOT.getValue())
+            {
+               // Fresh start for autopilot.
+               pufferfish.reset();
+
+               // Update elevations.
+               int[] elevations = getElevations();
+               String elevationsString = "";
+               for (int i = 0, j = Pufferfish.NUM_SENSORS - 1, k = j - 1; i < j; i++)
+               {
+                  elevationsString += elevations[i];
+                  if (i < k)
+                  {
+                     elevationsString += ",";
+                  }
+               }
+               setElevations(elevationsString);
+
+               // Update previous response.
+               Main.previousResponse = Pufferfish.WAIT;
+               setPreviousResponse(Pufferfish.getResponseName(Main.previousResponse));
+
+               // Update response.
+               setResponse(Pufferfish.getResponseName(pufferfish.response));
+               return;
+            }
          }
+      }
+
+
+      void setManualResponseButtons(boolean enabled)
+      {
+         forwardButton.setEnabled(enabled);
+         turnRightButton.setEnabled(enabled);
+         turnLeftButton.setEnabled(enabled);
+         smoothSurfaceButton.setEnabled(enabled);
+         raiseSurfaceButton.setEnabled(enabled);
+         lowerSurfaceButton.setEnabled(enabled);
       }
 
 
@@ -434,10 +463,53 @@ public class PufferfishDashboard extends JFrame
             pufferfish.driverResponse = Pufferfish.LOWER;
             return;
          }
+      }
+   }
 
-         if ((JButton)evt.getSource() == printMetamorphDatasetButton)
+   // Operations panel.
+   class OperationsPanel extends JPanel implements ActionListener
+   {
+      private static final long serialVersionUID = 0L;
+
+      // Components.
+      JButton clearMetamorphsButton;
+      JButton writeMetamorphDatasetButton;
+
+      // Constructor.
+      public OperationsPanel()
+      {
+         setLayout(new BorderLayout());
+         setBorder(BorderFactory.createTitledBorder(
+                      BorderFactory.createLineBorder(Color.black), "Operations"));
+         JPanel operationspanel = new JPanel();
+         operationspanel.setLayout(new FlowLayout(FlowLayout.LEFT));
+         add(operationspanel, BorderLayout.CENTER);
+         clearMetamorphsButton = new JButton("Clear metamorph rules");
+         clearMetamorphsButton.addActionListener(this);
+         operationspanel.add(clearMetamorphsButton);
+         writeMetamorphDatasetButton = new JButton("Write metamorph dataset to " + Pufferfish.DATASET_FILE_NAME);
+         writeMetamorphDatasetButton.addActionListener(this);
+         operationspanel.add(writeMetamorphDatasetButton);
+      }
+
+
+      // Button listener.
+      public void actionPerformed(ActionEvent evt)
+      {
+         if ((JButton)evt.getSource() == clearMetamorphsButton)
          {
-            pufferfish.printMetamorphDataset();
+            pufferfish.metamorphs.clear();
+            return;
+         }
+
+         if ((JButton)evt.getSource() == writeMetamorphDatasetButton)
+         {
+            try {
+               pufferfish.writeMetamorphDataset();
+            }
+            catch (Exception e) {
+               System.err.println("Cannot write metamorph dataset to file " + Pufferfish.DATASET_FILE_NAME + ": " + e.getMessage());
+            }
             return;
          }
       }

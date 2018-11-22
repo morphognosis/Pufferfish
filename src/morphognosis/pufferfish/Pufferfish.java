@@ -5,12 +5,15 @@
 package morphognosis.pufferfish;
 
 import java.io.BufferedOutputStream;
+import java.io.BufferedWriter;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Vector;
@@ -19,15 +22,6 @@ import morphognosis.Morphognostic;
 import morphognosis.Morphognostic.Neighborhood;
 import morphognosis.Orientation;
 import morphognosis.Utility;
-import weka.classifiers.Evaluation;
-import weka.classifiers.functions.MultilayerPerceptron;
-import weka.core.Attribute;
-import weka.core.Debug;
-import weka.core.FastVector;
-import weka.core.Instance;
-import weka.core.Instances;
-import weka.core.Utils;
-import weka.core.converters.ArffSaver;
 
 public class Pufferfish
 {
@@ -50,12 +44,6 @@ public class Pufferfish
 
    // Metamorphs.
    public ArrayList<Metamorph> metamorphs;
-   public FastVector           metamorphNNattributeNames;
-   public Instances            metamorphInstances;
-   MultilayerPerceptron        metamorphNN;
-   public static final boolean saveMetamorphInstances = false;
-   public static final boolean saveMetamorphNN        = false;
-   public static final boolean evaluateMetamorphNN    = true;
 
    // Sensors.
    public static final int LEFT_CELL_INDEX         = 0;
@@ -76,6 +64,9 @@ public class Pufferfish
    public static final int LOWER         = 6;
    public static final int NUM_RESPONSES = 7;
    int response;
+
+   // Dataset file name.
+   public static String DATASET_FILE_NAME = "metamorphs.csv";
 
    // Navigation.
    public boolean[][] landmarkMap;
@@ -106,10 +97,9 @@ public class Pufferfish
    // Driver type.
    public enum DRIVER_TYPE
    {
-      METAMORPH_DB(0),
-      METAMORPH_NN(1),
-      AUTOPILOT(2),
-      MANUAL(3);
+      AUTOPILOT(0),
+      METAMORPH_RULES(1),
+      MANUAL(2);
 
       private int value;
 
@@ -164,7 +154,6 @@ public class Pufferfish
       Morphognostic.Neighborhood n = morphognostic.neighborhoods.get(morphognostic.NUM_NEIGHBORHOODS - 1);
       maxEventAge = n.epoch + n.duration - 1;
       metamorphs  = new ArrayList<Metamorph>();
-      initMetamorphNN();
    }
 
 
@@ -197,7 +186,6 @@ public class Pufferfish
       Morphognostic.Neighborhood n = morphognostic.neighborhoods.get(morphognostic.NUM_NEIGHBORHOODS - 1);
       maxEventAge = n.epoch + n.duration - 1;
       metamorphs  = new ArrayList<Metamorph>();
-      initMetamorphNN();
    }
 
 
@@ -213,7 +201,7 @@ public class Pufferfish
          sensors[n] = 0.0f;
       }
       response       = WAIT;
-      driver         = DRIVER_TYPE.METAMORPH_DB.getValue();
+      driver         = DRIVER_TYPE.AUTOPILOT.getValue();
       driverResponse = WAIT;
       landmarkMap    = new boolean[nest.size.width][nest.size.height];
       for (int i = 0; i < nest.size.width; i++)
@@ -334,7 +322,6 @@ public class Pufferfish
          metamorphs.add(Metamorph.load(reader));
       }
       EQUIVALENT_MORPHOGNOSTIC_DISTANCE = Utility.loadFloat(reader);
-      initMetamorphNN();
       initAutopilot();
    }
 
@@ -381,13 +368,9 @@ public class Pufferfish
       morphognostic.update(morphEvents, x, y);
 
       // Respond.
-      if (driver == DRIVER_TYPE.METAMORPH_DB.getValue())
+      if (driver == DRIVER_TYPE.METAMORPH_RULES.getValue())
       {
-         metamorphDBresponse();
-      }
-      else if (driver == DRIVER_TYPE.METAMORPH_NN.getValue())
-      {
-         metamorphNNresponse();
+         metamorphRulesResponse();
       }
       else if (driver == DRIVER_TYPE.AUTOPILOT.getValue())
       {
@@ -427,8 +410,8 @@ public class Pufferfish
    }
 
 
-   // Get metamorph DB response.
-   void metamorphDBresponse()
+   // Get metamorph rules response.
+   void metamorphRulesResponse()
    {
       response = WAIT;
       Metamorph metamorph = null;
@@ -463,39 +446,6 @@ public class Pufferfish
       {
          response = metamorph.response;
       }
-   }
-
-
-   // Get metamorph neural network response.
-   void metamorphNNresponse()
-   {
-      response = WAIT;
-      double d = -1.0;
-      for (int i = 0; i < Orientation.NUM_ORIENTATIONS; i++)
-      {
-         morphognostic.orientation      = i;
-         double[] responseProbabilities = classifyMorphognostic(morphognostic);
-         for (int j = 0; j < NUM_RESPONSES; j++)
-         {
-            if ((d < 0.0) || (responseProbabilities[j] > d))
-            {
-               response = j;
-               d        = responseProbabilities[j];
-            }
-            else
-            {
-               if (responseProbabilities[j] == d)
-               {
-                  if (random.nextBoolean())
-                  {
-                     response = j;
-                     d        = responseProbabilities[j];
-                  }
-               }
-            }
-         }
-      }
-      morphognostic.orientation = Orientation.NORTH;
    }
 
 
@@ -838,184 +788,101 @@ public class Pufferfish
    }
 
 
-   // Initialize metamorph neural network.
-   public void initMetamorphNN()
+   // Write metamporph dataset.
+   public void writeMetamorphDataset() throws Exception
    {
-      int dx = 0;
+      FileOutputStream output;
 
-      if (Pufferfish.IGNORE_ELEVATION_SENSOR_VALUES)
+      try
       {
-         dx = 3;
+         output = new FileOutputStream(new File(DATASET_FILE_NAME));
       }
-      metamorphNNattributeNames = new FastVector();
-      for (int i = 0; i < morphognostic.NUM_NEIGHBORHOODS; i++)
+      catch (Exception e)
       {
-         int n = morphognostic.neighborhoods.get(i).sectors.length;
-         for (int x = 0; x < n; x++)
-         {
-            for (int y = 0; y < n; y++)
-            {
-               for (int d = dx; d < morphognostic.eventDimensions; d++)
-               {
-                  for (int j = 0; j < morphognostic.numEventTypes[d]; j++)
-                  {
-                     metamorphNNattributeNames.addElement(new Attribute(i + "-" + x + "-" + y + "-" + d + "-" + j));
-                  }
-               }
-            }
-         }
+         throw new IOException("Cannot open output file " + DATASET_FILE_NAME + ":" + e.getMessage());
       }
-      FastVector responseVals = new FastVector();
-      for (int i = 0; i < NUM_RESPONSES; i++)
-      {
-         responseVals.addElement(i + "");
-      }
-      metamorphNNattributeNames.addElement(new Attribute("type", responseVals));
-      metamorphInstances = new Instances("metamorphs", metamorphNNattributeNames, 0);
-      metamorphNN        = new MultilayerPerceptron();
-   }
-
-
-   // Create and train metamorph neural network.
-   public void createMetamorphNN() throws Exception
-   {
-      // Create instances.
-      metamorphInstances = new Instances("metamorphs", metamorphNNattributeNames, 0);
+      PrintWriter writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(output)));
       for (Metamorph m : metamorphs)
       {
-         metamorphInstances.add(createInstance(metamorphInstances, m));
+         writer.println(morphognostic2csv(m.morphognostic) + "," +
+                        Pufferfish.getResponseName(m.response));
       }
-      metamorphInstances.setClassIndex(metamorphInstances.numAttributes() - 1);
-
-      // Create and train the neural network.
-      MultilayerPerceptron mlp = new MultilayerPerceptron();
-      metamorphNN = mlp;
-      mlp.setLearningRate(0.1);
-      mlp.setMomentum(0.2);
-      mlp.setTrainingTime(2000);
-      mlp.setHiddenLayers("20");
-      mlp.setOptions(Utils.splitOptions("-L 0.1 -M 0.2 -N 2000 -V 0 -S 0 -E 20 -H 20"));
-      mlp.buildClassifier(metamorphInstances);
-
-      // Save training instances?
-      if (saveMetamorphInstances)
-      {
-         ArffSaver saver = new ArffSaver();
-         saver.setInstances(metamorphInstances);
-         saver.setFile(new File("metamorphInstances.arff"));
-         saver.writeBatch();
-      }
-
-      // Save networks?
-      if (saveMetamorphNN)
-      {
-         Debug.saveToFile("metamorphNN.dat", mlp);
-      }
-
-      // Evaluate the network.
-      if (evaluateMetamorphNN)
-      {
-         Evaluation eval = new Evaluation(metamorphInstances);
-         eval.evaluateModel(mlp, metamorphInstances);
-         System.out.println("Error rate=" + eval.errorRate());
-         System.out.println(eval.toSummaryString());
-      }
+      writer.flush();
+      output.close();
    }
 
 
-   // Create metamorph NN instance.
-   Instance createInstance(Instances instances, Metamorph m)
+   // Flatten morphognostic to csv string.
+   public String morphognostic2csv(Morphognostic morphognostic)
    {
-      int dx = 0;
+      String  output    = "";
+      boolean skipComma = true;
+      int     dx        = 0;
 
       if (Pufferfish.IGNORE_ELEVATION_SENSOR_VALUES)
       {
          dx = 3;
       }
-      double[]  attrValues = new double[instances.numAttributes()];
-      int a = 0;
       for (int i = 0; i < morphognostic.NUM_NEIGHBORHOODS; i++)
       {
-         Neighborhood neighborhood = m.morphognostic.neighborhoods.get(i);
+         Neighborhood neighborhood = morphognostic.neighborhoods.get(i);
          float[][][] densities = neighborhood.rectifySectorTypeDensities();
          int n = neighborhood.sectors.length;
          for (int j = 0, j2 = n * n; j < j2; j++)
          {
-            for (int d = dx, d2 = m.morphognostic.eventDimensions; d < d2; d++)
+            for (int d = dx, d2 = morphognostic.eventDimensions; d < d2; d++)
             {
-               for (int k = 0, k2 = m.morphognostic.numEventTypes[d]; k < k2; k++)
+               for (int k = 0, k2 = morphognostic.numEventTypes[d]; k < k2; k++)
                {
-                  attrValues[a] = densities[j][d][k];
-                  a++;
-               }
-            }
-         }
-      }
-      attrValues[a] = instances.attribute(a).indexOfValue(m.response + "");
-      a++;
-      return(new Instance(1.0, attrValues));
-   }
-
-
-   // Use metamorph NN to get response probability distribution.
-   public double[] classifyMorphognostic(Morphognostic morphognostic)
-   {
-      Metamorph metamorph = new Metamorph(morphognostic, 0);
-
-      //int       response  = 0;
-
-      try
-      {
-         // Classify.
-         Instance instance = createInstance(metamorphInstances, metamorph);
-         //int      predictionIndex = (int)metamorphNN.classifyInstance(instance);
-
-         // Get the predicted class label from the predictionIndex.
-         //String predictedClassLabel = metamorphInstances.classAttribute().value(predictionIndex);
-         //response = Integer.parseInt(predictedClassLabel);
-
-         // Get the prediction probability distribution.
-         return(metamorphNN.distributionForInstance(instance));
-      }
-      catch (Exception e)
-      {
-         System.err.println("Error classifying morphognostic:");
-         e.printStackTrace();
-      }
-      return(null);
-   }
-
-
-   // Print metamporph dataset.
-   public void printMetamorphDataset()
-   {
-      int dx = 0;
-
-      if (Pufferfish.IGNORE_ELEVATION_SENSOR_VALUES)
-      {
-         dx = 3;
-      }
-      for (Metamorph m : metamorphs)
-      {
-         for (int i = 0; i < morphognostic.NUM_NEIGHBORHOODS; i++)
-         {
-            Neighborhood neighborhood = m.morphognostic.neighborhoods.get(i);
-            float[][][] densities = neighborhood.rectifySectorTypeDensities();
-            int n = neighborhood.sectors.length;
-            for (int j = 0, j2 = n * n; j < j2; j++)
-            {
-               for (int d = dx, d2 = m.morphognostic.eventDimensions; d < d2; d++)
-               {
-                  for (int k = 0, k2 = m.morphognostic.numEventTypes[d]; k < k2; k++)
+                  if (skipComma)
                   {
-                     System.out.print(densities[j][d][k] + ",");
+                     skipComma = false;
                   }
+                  else
+                  {
+                     output += ",";
+                  }
+                  output += (densities[j][d][k] + "");
                }
             }
          }
-         System.out.println(Pufferfish.getResponseName(m.response));
       }
-      System.out.flush();
+      return(output);
+   }
+
+
+   // Response value from name.
+   public static int getResponseValue(String name)
+   {
+      if (name.equals("wait"))
+      {
+         return(WAIT);
+      }
+      if (name.equals("forward"))
+      {
+         return(FORWARD);
+      }
+      if (name.equals("turn left"))
+      {
+         return(TURN_LEFT);
+      }
+      if (name.equals("turn right"))
+      {
+         return(TURN_RIGHT);
+      }
+      if (name.equals("smooth surface"))
+      {
+         return(SMOOTH);
+      }
+      if (name.equals("raise surface"))
+      {
+         return(RAISE);
+      }
+      if (name.equals("lower surface"))
+      {
+         return(LOWER);
+      }
+      return(-1);
    }
 
 
