@@ -74,6 +74,7 @@ public class Main
       "     [-driver <metamorphRules | autopilot> (pufferfish driver: default=autopilot)]\n" +
       "     [-randomSeed <random number seed> (default=" + DEFAULT_RANDOM_SEED + ")]\n" +
       "     [-save <file name>]\n" +
+      "     [-print (print parameters and properties)]\n" +
       "     [-writeMetamorphDataset <file name> (write metamorph dataset file, default=" + Pufferfish.DATASET_FILE_NAME + ")]\n" +
       "  Resume run:\n" +
       "    java morphognosis.pufferfish.Main\n" +
@@ -82,6 +83,7 @@ public class Main
       "     [-driver <metamorphRules | autopilot> (default=autopilot)]\n" +
       "     [-randomSeed <random number seed>]\n" +
       "     [-save <file name>]\n" +
+      "     [-print (print parameters and properties)]\n" +
       "     [-writeMetamorphDataset <file name> (write metamorph dataset file, default=" + Pufferfish.DATASET_FILE_NAME + ")]\n" +
       "  Version:\n" +
       "    java morphognosis.pufferfish.Main -version\n" +
@@ -465,6 +467,7 @@ public class Main
       String  savefile          = null;
       boolean display           = false;
       boolean gotParm           = false;
+      boolean printParm         = false;
       boolean gotDatasetParm    = false;
       int     NUM_NEIGHBORHOODS = Morphognostic.DEFAULT_NUM_NEIGHBORHOODS;
       int     NEIGHBORHOOD_INITIAL_DIMENSION    = Morphognostic.DEFAULT_NEIGHBORHOOD_INITIAL_DIMENSION;
@@ -972,6 +975,11 @@ public class Main
             }
             continue;
          }
+         if (args[i].equals("-print"))
+         {
+            printParm = true;
+            continue;
+         }
          if (args[i].equals("-writeMetamorphDataset"))
          {
             i++;
@@ -1065,6 +1073,14 @@ public class Main
             System.err.println("Cannot initialize: " + e.getMessage());
             System.exit(1);
          }
+      }
+
+      // Print parameters and properties?
+      if (printParm)
+      {
+         System.out.println("Morphognosis parameters:");
+         main.pufferfish.morphognostic.printParameters();
+         main.nest.printProperties();
       }
 
       // Create display?

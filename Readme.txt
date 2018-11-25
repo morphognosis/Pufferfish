@@ -32,7 +32,7 @@ The dataset can be used with your favorite machine learning tools, e.g. H2Oai (h
 
 References:
 
-Generating an artificial nest building pufferfish through behavior mimicry: 
+Generating an artificial nest building pufferfish in a cellular automaton through behavior mimicry: 
 	Paper: http://tom.portegys.com/research.html#pufferfish
 	Code: https://github.com/morphognosis/Pufferfish
 	
